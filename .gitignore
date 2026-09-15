@@ -1,0 +1,13 @@
+# screen captures; screenshots for the README live in docs/screenshots
+*.png
+!app/src-tauri/icons/*.png
+!docs/screenshots/*.png
+*.log
+target/
+node_modules/
+dist/
+gen/
+# credentials for the live tests (see app/src-tauri/src/jellyfin.rs) - never commit
+.env.local
+# built AppImages (packaging/build-appimage.sh)
+packaging/out/

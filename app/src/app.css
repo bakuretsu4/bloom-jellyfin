@@ -1,0 +1,553 @@
+/* Design tokens from DESIGN.md. Values must stay in sync with that file. */
+
+/* Bundled rather than fetched: a desktop media client has to work offline, and should not
+   tell a font CDN every time it opens. Archivo is OFL-licensed; see assets/fonts/OFL.txt. */
+@font-face {
+  font-family: "Archivo";
+  src: url("./assets/fonts/Archivo.woff2") format("woff2");
+  font-weight: 400 700;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+
+/* Accents are pairs, one value per theme (DESIGN.md §2): the light value is darker so it clears
+   4.5:1 as text on light surfaces. The theme blocks pick the half they need. Mirrored in
+   src/lib/SettingsPage.svelte. */
+:root {
+  --accent-light: #9c4e14;
+  --accent-dark: #d98237;
+}
+:root[data-accent="green"] {
+  --accent-light: #2e6a5c;
+  --accent-dark: #6aa08f;
+}
+:root[data-accent="blue"] {
+  --accent-light: #3c5f7d;
+  --accent-dark: #7c9db8;
+}
+:root[data-accent="red"] {
+  --accent-light: #8e4640;
+  --accent-dark: #c8837b;
+}
+
+:root {
+  --ground: #dee2e0;
+  --surface: #f4f6f5;
+  --surface-2: #e7ebe9;
+  --raise: #ffffff;
+  --line: #c6ccca;
+  --line-soft: #dadfdd;
+  --ink: #161918;
+  --ink-2: #4a5150;
+  --ink-3: #616967;
+  --accent: var(--accent-light);
+  --accent-media: #d98237;
+  --accent-ink: #ffffff;
+  --good: #2f6b46;
+  --alert: #9c4a43;
+
+  --f-ui: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-ctl: 6px;
+  --r: 8px;
+  --r-lg: 12px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-panel: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-mech: cubic-bezier(0.16, 0.84, 0.24, 1);
+  --shadow: 0 1px 2px rgba(16, 22, 20, 0.07), 0 10px 30px rgba(16, 22, 20, 0.09);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #141615;
+    --surface: #232624;
+    --surface-2: #2d312f;
+    --raise: #363b39;
+    --line: #3f4543;
+    --line-soft: #2e3331;
+    --ink: #e9eceb;
+    --ink-2: #a7afad;
+    --ink-3: #8c9492;
+    --accent: var(--accent-dark);
+    --accent-ink: #1a1310;
+    --good: #5e9b72;
+    --alert: #c0736b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.34), 0 14px 34px rgba(0, 0, 0, 0.38);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #141615;
+  --surface: #232624;
+  --surface-2: #2d312f;
+  --raise: #363b39;
+  --line: #3f4543;
+  --line-soft: #2e3331;
+  --ink: #e9eceb;
+  --ink-2: #a7afad;
+  --ink-3: #8c9492;
+  --accent: var(--accent-dark);
+  --accent-ink: #1a1310;
+  --good: #5e9b72;
+  --alert: #c0736b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.34), 0 14px 34px rgba(0, 0, 0, 0.38);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Components set their own display, which would otherwise beat the default [hidden] style.
+   The prototype only worked because its host injected this; the app has no host. */
+[hidden] {
+  display: none !important;
+}
+
+/* The page itself must stay transparent: mpv draws underneath the webview, and only
+   surfaces that paint their own background hide it. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--f-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Artwork, and the generated title card that stands in when there is none. */
+.art {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r);
+  background: color-mix(in oklab, var(--tint, #5e6a74) 19%, var(--surface-2));
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  container-type: inline-size;
+}
+.art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(179deg, rgba(255, 255, 255, 0.045), rgba(0, 0, 0, 0.11));
+}
+.art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.12;
+  mix-blend-mode: overlay;
+}
+/* Grain is the placeholder's texture (DESIGN.md, Artwork placeholders), not the poster's: once
+   artwork has loaded it goes, and with it a blended layer per card for WebKit to composite. */
+.art:has(> img.is-loaded)::after {
+  display: none;
+}
+.art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.24s var(--ease);
+}
+.art img.is-loaded {
+  opacity: 1;
+}
+.art-label {
+  position: relative;
+  z-index: 2;
+  font-stretch: 118%;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-size: clamp(10px, 9cqw, 30px);
+  line-height: 1.1;
+  color: color-mix(in oklab, var(--ink) 78%, transparent);
+  text-align: center;
+  padding: 8px;
+  max-width: 94%;
+  overflow-wrap: anywhere;
+}
+.art-label b {
+  display: block;
+  font-weight: inherit;
+}
+.art-label span {
+  display: block;
+  margin-top: 0.55em;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(9px, 2.8cqw, 12px);
+  opacity: 0.62;
+}
+
+.iconbtn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-ctl);
+  display: grid;
+  place-items: center;
+  background: none;
+  cursor: pointer;
+  color: var(--ink-2);
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+.iconbtn:hover,
+.iconbtn[aria-expanded="true"] {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* Controls shared across screens. Ported from the design prototype (see DESIGN.md). */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: var(--r-ctl);
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.1s var(--ease),
+    border-color 0.16s var(--ease);
+}
+.btn:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+  transform: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.btn-primary:hover {
+  background: color-mix(in oklab, var(--accent) 88%, var(--ink));
+  color: var(--accent-ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label,
+.field .label {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.field input {
+  height: 38px;
+  padding: 0 12px;
+  color: var(--ink);
+  font-size: 14px;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+}
+.field input::placeholder {
+  color: var(--ink-3);
+}
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+.field input[aria-invalid="true"] {
+  border-color: var(--alert);
+}
+.field .hint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border-radius: 12px;
+  flex: none;
+  cursor: pointer;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--raise);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s var(--ease);
+}
+.switch[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch[aria-checked="true"] span {
+  transform: translateX(18px);
+  background: var(--accent-ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Pages in the shell: libraries, a library, search results, series and films. */
+.page {
+  padding-inline: clamp(16px, 2.2vw, 26px);
+  padding-block: 18px 56px;
+}
+.page .back {
+  margin-bottom: 14px;
+}
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.page-title {
+  margin: 0;
+  font-stretch: 118%;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+.eyebrow {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 28px 20px;
+}
+.media-grid.is-wide {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+/* Static placeholders; the scan-line skeleton comes with the motion port. */
+.sk-card {
+  aspect-ratio: 2 / 3;
+  border-radius: var(--r);
+  background: var(--surface);
+}
+.sk-card.is-wide {
+  aspect-ratio: 16 / 9;
+}
+.page-notice {
+  max-width: 460px;
+  padding-top: 8vh;
+}
+.page-notice h2 {
+  margin: 0 0 6px;
+  font-stretch: 118%;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-size: 1.3rem;
+  line-height: 1.15;
+}
+.page-notice p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+/* An empty result, composed rather than a bare line of text. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 46ch;
+  padding: 36px 0 48px;
+}
+.empty-art {
+  display: flex;
+  gap: 8px;
+}
+.empty-art span {
+  width: 56px;
+  height: 78px;
+  border-radius: var(--r);
+  background: color-mix(in oklab, var(--ink-3) 15%, var(--surface));
+  border: 1px solid var(--line-soft);
+}
+.empty-art span:nth-child(2) {
+  transform: translateY(7px);
+  opacity: 0.72;
+}
+.empty-art span:nth-child(3) {
+  transform: translateY(14px);
+  opacity: 0.45;
+}
+.empty h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.empty p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* Loading (DESIGN.md §7): a scan head passes down a skeleton shaped like the real layout. Only
+   ever on a real fetch. */
+.skel {
+  position: relative;
+  overflow: hidden;
+}
+.skel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 40%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--ink) 5%, transparent) 70%,
+    color-mix(in oklab, var(--ink) 11%, transparent) 96%,
+    transparent 100%
+  );
+  transform: translateY(-100%);
+  animation: scan 1.8s var(--ease-mech) infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  to {
+    transform: translateY(250%);
+  }
+}
+
+/* Arriving: loaded rows rise into place with a short stagger, from an almost-visible start.
+   Filled backwards only: an animation still holding a transform after it ends makes the row a
+   containing block, and the hover cards inside (position: fixed) then measure from the row
+   instead of the window and land offset. */
+.stagger > * {
+  animation: rise 0.34s var(--ease-mech) backwards;
+}
+.stagger > :nth-child(1) {
+  animation-delay: 0.02s;
+}
+.stagger > :nth-child(2) {
+  animation-delay: 0.05s;
+}
+.stagger > :nth-child(3) {
+  animation-delay: 0.08s;
+}
+.stagger > :nth-child(4) {
+  animation-delay: 0.11s;
+}
+.stagger > :nth-child(5) {
+  animation-delay: 0.14s;
+}
+.stagger > :nth-child(6) {
+  animation-delay: 0.17s;
+}
+.stagger > :nth-child(n + 7) {
+  animation-delay: 0.2s;
+}
+@keyframes rise {
+  from {
+    opacity: 0.001;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Opening a title: the clicked artwork grows into what opens (motion.ts). */
+::view-transition-group(title-art) {
+  animation-duration: 0.42s;
+  animation-timing-function: var(--ease-mech);
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+/* Settings, Reduce motion: the same, whatever the desktop says. */
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

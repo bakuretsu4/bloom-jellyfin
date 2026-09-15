@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting and FAQ
+    url: https://github.com/bakuretsu4/bloom-jellyfin/blob/main/docs/troubleshooting.md
+    about: Common problems (playback on the CPU, servers not found, Discord) and how to fix them.
+  - name: Report a security problem
+    url: https://github.com/bakuretsu4/bloom-jellyfin/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.
+  - name: Jellyfin server problems
+    url: https://jellyfin.org/contact
+    about: For problems with Jellyfin itself rather than Bloom.

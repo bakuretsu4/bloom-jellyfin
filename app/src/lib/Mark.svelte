@@ -1,0 +1,19 @@
+<script lang="ts">
+  // The Bloom moth. Geometry mirrors brand/bloom-moth.svg; see DESIGN.md §11 for the rules
+  // that keep it reading as a moth rather than a butterfly.
+  let { size = 24 }: { size?: number } = $props();
+</script>
+
+<svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <polygon points="0.8,0.8 5,0.8 5,2.4 2.4,2.4 2.4,5 0.8,5" />
+  <polygon points="23.2,0.8 19,0.8 19,2.4 21.6,2.4 21.6,5 23.2,5" />
+  <polygon points="0.8,23.2 5,23.2 5,21.6 2.4,21.6 2.4,19 0.8,19" />
+  <polygon points="23.2,23.2 19,23.2 19,21.6 21.6,21.6 21.6,19 23.2,19" />
+  <path d="M11.2 5.9 10 4.7M12.8 5.9 14 4.7" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="square" />
+  <polygon points="12,5.3 13.5,6.9 12,8.5 10.5,6.9" />
+  <polygon points="10.8,8.6 2.9,6.4 5.1,11.6 10.4,11.9" />
+  <polygon points="13.2,8.6 21.1,6.4 18.9,11.6 13.6,11.9" />
+  <polygon points="10.4,12.7 5.4,12.6 8.9,17.2 10.7,15.9" />
+  <polygon points="13.6,12.7 18.6,12.6 15.1,17.2 13.3,15.9" />
+  <polygon points="12,9 13.3,10.3 12.9,17.6 12,20.4 11.1,17.6 10.7,10.3" />
+</svg>

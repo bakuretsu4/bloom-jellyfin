@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in Bloom doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The details below make most problems quick to find.
+        Please check the [known issues](../blob/main/README.md#known-issues) first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a film
+        2. Press play
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: Bloom version
+      description: Settings → About, or the AppImage's file name.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and desktop
+      placeholder: Arch, KDE Plasma 6 on Wayland
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: Graphics
+      description: Your GPU(s), and for hybrid laptops which one Bloom runs on (Settings → Hardware decoder names it).
+      placeholder: Intel Iris Xe / AMD Radeon 780M / NVIDIA RTX 3060, driver 615
+  - type: input
+    id: decoder
+    attributes:
+      label: Decoder line (for playback problems)
+      description: The line under the player, such as "decoded locally via VA-API" or "decoded in software".
+  - type: input
+    id: server
+    attributes:
+      label: Jellyfin server version
+      placeholder: 10.11.11
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        Start Bloom from a terminal and paste what it prints around the problem:
+        `./Bloom_0.1.0_amd64.AppImage 2>&1 | tee bloom.log`
+        Check it for anything you'd rather not share (server addresses, names) before posting.
+      render: text

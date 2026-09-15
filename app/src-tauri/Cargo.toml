@@ -1,0 +1,42 @@
+[package]
+name = "bloom"
+version = "0.1.0"
+description = "A fast Jellyfin client"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[build-dependencies]
+tauri-build = { version = "2.6", features = [] }
+
+[dependencies]
+tauri = { version = "2.11", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2"] }
+uuid = { version = "1", features = ["v4"] }
+# Cuts seek-bar thumbnails out of Jellyfin's tiles (images.rs). JPEG only.
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+url = "2"
+thiserror = "2"
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+tokio = { version = "1", default-features = false, features = ["sync", "time", "net", "io-util", "process", "rt-multi-thread"] }
+tokio-tungstenite = { version = "0.30.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+
+# Thumbnails are cut from a tile the first time one of them is shown while scrubbing: keep that
+# quick in development builds too, where unoptimised image code is many times slower.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+
+# The player layer is Linux-only for now (GTK + WebKitGTK + libmpv). Keeping it behind a
+# target cfg leaves the Windows phase possible without pretending it exists yet.
+[target.'cfg(target_os = "linux")'.dependencies]
+# Desktop notifications; already in the build through Tauri's window library.
+dbus = "0.9"
+gtk = "0.18"
+glib = "0.18"
+webkit2gtk = "2.0"
+libloading = "0.9"
+# statvfs, for the free space Downloads shows and checks before a download starts.
+libc = "0.2"
