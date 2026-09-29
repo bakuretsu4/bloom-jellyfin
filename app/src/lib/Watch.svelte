@@ -1105,7 +1105,7 @@
           <span class="sr-only" role="status">{started ? "Buffering" : "Loading"}</span>
         </div>
       {:else if paused && (countdown === null || upNextAt === "credits")}
-        <span class="paused-mark" aria-hidden="true"><Icon name="play" size={26} /></span>
+        <span class="paused-mark" aria-hidden="true"><Icon name="play" size={40} /></span>
       {/if}
 
       {#if countdown !== null && upNext}
@@ -1132,7 +1132,7 @@
             {/if}
             <div class="up-next-actions">
               <button class="btn btn-primary" bind:this={playNowButton} onclick={playNext}>
-                <Icon name="play" size={14} />Play now
+                <Icon name="play" />Play now
               </button>
               <button class="btn" onclick={cancelCountdown}>{upNextAt === "credits" ? "Watch credits" : "Cancel"}</button>
             </div>
@@ -1142,13 +1142,13 @@
 
       {#if skippable}
         <button class="skip" class:is-low={!showChrome} aria-keyshortcuts="S" onclick={skipSegment}>
-          {skipLabel(skippable)}<Icon name="next" size={14} />
+          {skipLabel(skippable)}<Icon name="next" />
         </button>
       {/if}
 
       <div class="chrome top">
         <button class="pbtn" aria-label="Back to Home" onclick={close} disabled={closing}>
-          <Icon name="chevl" size={16} />
+          <Icon name="sym:arrow_back" />
         </button>
         {#if now && mode !== "default"}
           <div class="titles">
@@ -1212,7 +1212,7 @@
               <Icon name="prev" />
             </button>
           {/if}
-          <button class="pbtn" aria-label={paused ? "Play (K)" : "Pause (K)"} disabled={!started} onclick={togglePause}>
+          <button class="pbtn pbtn-main" aria-label={paused ? "Play (K)" : "Pause (K)"} disabled={!started} onclick={togglePause}>
             <Icon name={paused ? "play" : "pause"} />
           </button>
           {#if hasChapters}
@@ -1241,6 +1241,7 @@
                 max="100"
                 step="1"
                 value={Math.round(muted ? 0 : volume)}
+                style:--pct="{Math.round(muted ? 0 : volume)}%"
                 aria-label="Volume"
                 oninput={(e) => setVolume(Number(e.currentTarget.value))}
               />
@@ -1306,7 +1307,7 @@
                   <span class="opt-name">Original</span>
                   {#if sourceLabel}<small>{sourceLabel}</small>{/if}
                 </span>
-                <span class="mark"><Icon name="check" size={14} /></span>
+                <span class="mark"><Icon name="check" /></span>
               </button>
               {#each qualityOptions as option (option.id)}
                 <button
@@ -1319,7 +1320,7 @@
                     <span class="opt-name">{option.id}</span>
                     <small>Transcoded by the server, up to {option.bitrate / 1e6} Mb/s</small>
                   </span>
-                  <span class="mark"><Icon name="check" size={14} /></span>
+                  <span class="mark"><Icon name="check" /></span>
                 </button>
               {/each}
             </div>
@@ -1353,7 +1354,7 @@
                   <span class="opt-name">{trackName(track, i)}</span>
                   {#if trackDetail(track)}<small>{trackDetail(track)}</small>{/if}
                 </span>
-                <span class="mark"><Icon name="check" size={14} /></span>
+                <span class="mark"><Icon name="check" /></span>
               </button>
             {:else}
               <p class="pop-empty">This file has no audio.</p>
@@ -1368,7 +1369,7 @@
               onclick={() => chooseTrack("subtitle", null)}
             >
               <span class="opt-text"><span class="opt-name">Off</span></span>
-              <span class="mark"><Icon name="check" size={14} /></span>
+              <span class="mark"><Icon name="check" /></span>
             </button>
             {#each subtitleTracks as track, i (track.id)}
               <button
@@ -1381,7 +1382,7 @@
                   <span class="opt-name">{trackName(track, i)}</span>
                   {#if trackDetail(track)}<small>{trackDetail(track)}</small>{/if}
                 </span>
-                <span class="mark"><Icon name="check" size={14} /></span>
+                <span class="mark"><Icon name="check" /></span>
               </button>
             {/each}
           </div>
@@ -1427,7 +1428,7 @@
                 {#if !isTrailer}
                 <div class="actions">
                   <button class="btn" aria-pressed={played} disabled={acting} onclick={() => toggle("played")}>
-                    <Icon name="check" size={14} />{played ? "Watched" : "Mark watched"}
+                    <Icon name="check" />{played ? "Watched" : "Mark watched"}
                   </button>
                   <button class="btn" aria-pressed={favorite} disabled={acting} onclick={() => toggle("favorite")}>
                     <Icon name="heart" size={14} />{favorite ? "Favorited" : "Favorite"}
@@ -1517,7 +1518,7 @@
   .side {
     position: sticky;
     top: 0;
-    height: calc(100dvh - 56px);
+    height: calc(100dvh - var(--bar-h, 64px));
     overflow-y: auto;
     overscroll-behavior: contain;
     display: flex;
@@ -1544,7 +1545,7 @@
     margin-inline: auto;
     aspect-ratio: 16 / 9;
     max-width: min(100%, 1280px);
-    max-height: calc(100dvh - 56px - 216px);
+    max-height: calc(100dvh - var(--bar-h, 64px) - 216px);
     border-radius: var(--r-lg);
     overflow: hidden;
     isolation: isolate;
@@ -1558,7 +1559,7 @@
   }
   .watch.is-theater .player {
     max-width: 100%;
-    max-height: calc(100dvh - 56px - 84px);
+    max-height: calc(100dvh - var(--bar-h, 64px) - 84px);
     border-radius: 0;
   }
   .watch.is-fullscreen .player {
@@ -1647,7 +1648,7 @@
     outline: none;
   }
   .scrub:focus-visible .track {
-    outline: 2px solid var(--accent-media);
+    outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 4px;
   }
   .track {
@@ -1676,17 +1677,18 @@
     background: rgba(240, 242, 241, 0.4);
   }
   .played {
-    background: var(--accent-media);
+    background: var(--md-sys-color-primary);
   }
   .thumb {
     position: absolute;
     top: 50%;
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background: var(--accent-media);
+    background: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--md-sys-color-primary) 24%, transparent);
     transform: translate(-50%, -50%) scale(0);
-    transition: transform 0.18s var(--ease);
+    transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized);
   }
   .scrub:hover .thumb,
   .scrub.is-dragging .thumb,
@@ -1697,10 +1699,12 @@
     position: absolute;
     bottom: 20px;
     transform: translateX(-50%);
-    padding: 3px 7px;
-    border-radius: 6px;
-    background: rgba(18, 20, 19, 0.9);
-    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: var(--md-sys-shape-sm);
+    background: var(--md-sys-color-inverse-surface);
+    color: var(--md-sys-color-inverse-on-surface);
+    box-shadow: var(--md-sys-elevation-2);
+    font: 500 12px/16px var(--f-ui);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     pointer-events: none;
@@ -1734,8 +1738,8 @@
     margin-left: 8px;
     padding: 1px 6px;
     border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: 5px;
-    font-size: 11.5px;
+    border-radius: var(--md-sys-shape-sm);
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -1746,26 +1750,26 @@
     padding: 4px 10px 8px;
   }
   .speed {
-    min-width: 46px;
-    height: 28px;
+    min-width: 48px;
+    height: 32px;
     padding: 0 8px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 6px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-sm);
     background: none;
-    color: #d9dedc;
-    font: inherit;
-    font-size: 12.5px;
+    color: var(--md-sys-color-on-surface-variant);
+    font: 500 13px/16px var(--f-ui);
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
     font-variant-numeric: tabular-nums;
     cursor: pointer;
   }
   .speed:hover,
   .speed:focus-visible {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   }
   .speed[aria-checked="true"] {
-    border-color: var(--accent-media);
-    color: var(--accent-media);
+    border-color: transparent;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
   .right {
     margin-left: auto;
@@ -1774,24 +1778,43 @@
     gap: 4px;
   }
   .pbtn {
-    width: 34px;
-    height: 34px;
+    position: relative;
+    overflow: hidden;
+    width: 40px;
+    height: 40px;
     flex: none;
     display: grid;
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: var(--r-ctl);
+    border-radius: var(--md-sys-shape-full);
     background: none;
     color: inherit;
     cursor: pointer;
-    transition: background 0.16s var(--ease), color 0.16s var(--ease);
+    transition:
+      background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard),
+      color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard),
+      transform var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized);
   }
   .pbtn:hover:not([disabled]) {
     background: rgba(240, 242, 241, 0.16);
   }
+  .pbtn:active:not([disabled]) {
+    transform: scale(0.92);
+  }
   .pbtn[aria-pressed="true"] {
-    color: var(--accent-media);
+    color: var(--md-sys-color-primary);
+  }
+  /* The one that matters: a filled circle. */
+  .pbtn-main {
+    width: 48px;
+    height: 48px;
+    margin-inline: 4px;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+  }
+  .pbtn-main:hover:not([disabled]) {
+    background: color-mix(in srgb, var(--md-sys-color-primary) 88%, white);
   }
   .pbtn[disabled] {
     opacity: 0.45;
@@ -1822,7 +1845,43 @@
   }
   .vol-track input {
     width: 72px;
-    accent-color: var(--accent-media);
+    height: 20px;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+  .vol-track input::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--md-sys-color-primary) var(--pct, 100%), rgba(240, 242, 241, 0.3) var(--pct, 100%));
+  }
+  .vol-track input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
+    border: 0;
+  }
+  .vol-track input::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(240, 242, 241, 0.3);
+  }
+  .vol-track input::-moz-range-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--md-sys-color-primary);
+  }
+  .vol-track input::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
   }
   /* The volume icon's bars follow the volume: the icon is the same instrument as the meter. */
   .mute :global(.lv) {
@@ -1860,15 +1919,28 @@
     left: 50%;
     top: 50%;
     z-index: 1;
-    width: 62px;
-    height: 62px;
+    width: 80px;
+    height: 80px;
     display: grid;
     place-items: center;
-    padding-left: 3px;
     border-radius: 50%;
-    background: rgba(18, 20, 19, 0.62);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    box-shadow: var(--md-sys-elevation-3);
     transform: translate(-50%, -50%);
     pointer-events: none;
+    animation: mark-in var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized-decelerate) both;
+  }
+
+  @keyframes mark-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
   }
 
   .panel {
@@ -1878,20 +1950,21 @@
     z-index: 3;
     transform: translate(-50%, -50%);
     max-width: min(440px, calc(100% - 32px));
-    padding: 18px 20px;
-    border-radius: var(--r);
-    background: rgba(20, 22, 21, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 24px;
+    border-radius: var(--md-sys-shape-xl);
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+    box-shadow: var(--md-sys-elevation-3);
   }
   .panel-title {
-    margin: 0 0 6px;
-    font-weight: 600;
-    font-size: 15px;
+    margin: 0 0 8px;
+    font: 400 24px/32px var(--f-ui);
   }
   .panel-body {
-    margin: 0 0 14px;
-    font-size: 13.5px;
-    color: #b9bfbd;
+    margin: 0 0 16px;
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.25px;
+    color: var(--md-sys-color-on-surface-variant);
   }
 
   .popover {
@@ -1902,18 +1975,18 @@
     width: 290px;
     max-height: calc(100% - 84px);
     overflow-y: auto;
-    padding: 8px;
-    color: var(--ink);
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    animation: pop 0.2s var(--ease) both;
+    padding: 8px 0;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-lg);
+    box-shadow: var(--md-sys-elevation-3);
+    transform-origin: bottom right;
+    animation: pop var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized-decelerate) both;
   }
   @keyframes pop {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: scale(0.9) translateY(8px);
     }
     to {
       opacity: 1;
@@ -1923,12 +1996,13 @@
   .pop-sec + .pop-sec {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px solid var(--line-soft);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
   }
   .pop-label {
-    padding: 4px 8px;
-    font-size: 11.5px;
-    color: var(--ink-3);
+    padding: 8px 16px 4px;
+    font: 500 12px/16px var(--f-ui);
+    letter-spacing: 0.5px;
+    color: var(--md-sys-color-primary);
   }
   .pop-opt {
     display: flex;
@@ -1936,23 +2010,21 @@
     justify-content: space-between;
     gap: 8px;
     width: 100%;
-    padding: 6px 8px;
+    min-height: 48px;
+    padding: 4px 16px;
     border: 0;
-    border-radius: var(--r-ctl);
     background: none;
-    color: var(--ink-2);
-    font-size: 13px;
+    color: var(--md-sys-color-on-surface);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     text-align: left;
     cursor: pointer;
-    transition: background 0.16s var(--ease), color 0.16s var(--ease);
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
   }
   .pop-opt:hover,
   .pop-opt:focus-visible {
-    background: var(--surface-2);
-    color: var(--ink);
-  }
-  .pop-opt[aria-checked="true"] {
-    color: var(--ink);
+    outline: none;
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
   }
   .opt-text {
     display: flex;
@@ -1972,7 +2044,7 @@
   .mark {
     display: grid;
     flex: none;
-    color: var(--accent);
+    color: var(--md-sys-color-primary);
     opacity: 0;
   }
   .pop-opt[aria-checked="true"] .mark {
@@ -1995,25 +2067,23 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    height: 38px;
-    padding: 0 14px;
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    border-radius: var(--r-ctl);
-    background: rgba(18, 20, 19, 0.8);
-    color: #edefee;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 600;
+    height: 48px;
+    padding: 0 20px 0 24px;
+    border: 0;
+    border-radius: var(--md-sys-shape-full);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    box-shadow: var(--md-sys-elevation-3);
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     cursor: pointer;
     transition:
-      transform 0.25s var(--ease),
-      background 0.16s var(--ease),
-      border-color 0.16s var(--ease);
+      transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized),
+      box-shadow var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
   }
   .skip:hover,
   .skip:focus-visible {
-    background: rgba(18, 20, 19, 0.94);
-    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: var(--md-sys-elevation-4);
   }
   .skip.is-low {
     transform: translateY(56px);
@@ -2032,9 +2102,10 @@
     width: max-content;
     max-width: min(560px, calc(100% - 32px));
     padding: 16px;
-    border-radius: var(--r-lg);
-    background: rgba(20, 22, 21, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--md-sys-shape-xl);
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+    box-shadow: var(--md-sys-elevation-3);
   }
   .up-next-art {
     position: relative;
@@ -2055,20 +2126,18 @@
     flex: 1 1 220px;
   }
   .up-next-label {
-    font-size: 12.5px;
-    color: #b9bfbd;
+    font: 500 12px/16px var(--f-ui);
+    letter-spacing: 0.5px;
+    color: var(--md-sys-color-primary);
     font-variant-numeric: tabular-nums;
   }
   .up-next-title {
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    font-size: 16px;
-    line-height: 1.2;
+    font: 500 16px/24px var(--f-ui);
+    letter-spacing: 0.15px;
   }
   .up-next-subtitle {
-    font-size: 13px;
-    color: #b9bfbd;
+    font: 400 14px/20px var(--f-ui);
+    color: var(--md-sys-color-on-surface-variant);
   }
   .up-next-title,
   .up-next-subtitle {
@@ -2079,16 +2148,16 @@
   /* The countdown as a bar that drains, so the time left reads at a glance. */
   .up-next-bar {
     position: relative;
-    height: 3px;
+    height: 4px;
     margin-block: 8px 6px;
     border-radius: 2px;
     overflow: hidden;
-    background: rgba(240, 242, 241, 0.2);
+    background: var(--md-sys-color-surface-container-highest);
   }
   .up-next-bar span {
     position: absolute;
     inset: 0;
-    background: var(--accent-media);
+    background: var(--md-sys-color-primary);
     transform-origin: left center;
     animation: drain var(--seconds) linear forwards;
   }
@@ -2150,11 +2219,12 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 14px;
-    padding: 9px 13px;
-    border-radius: var(--r-ctl);
-    background: var(--surface);
-    font-size: 12.5px;
-    color: var(--ink-3);
+    padding: 10px 16px;
+    border-radius: var(--md-sys-shape-md);
+    background: var(--md-sys-color-surface-container);
+    font: 400 12px/16px var(--f-ui);
+    letter-spacing: 0.4px;
+    color: var(--md-sys-color-on-surface-variant);
     font-variant-numeric: tabular-nums;
   }
   .readout-state {
@@ -2188,11 +2258,9 @@
   }
   .title {
     margin: 0;
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    font-size: clamp(1.5rem, 2.4vw, 2.1rem);
-    line-height: 1.08;
+    font-weight: 400;
+    font-size: clamp(1.75rem, 2.4vw, 2rem);
+    line-height: 1.25;
   }
   .meta-line {
     display: flex;
@@ -2220,7 +2288,7 @@
   .tag {
     padding: 1px 6px;
     border: 1px solid var(--line);
-    border-radius: 5px;
+    border-radius: var(--md-sys-shape-xs);
     font-size: 11.5px;
     white-space: nowrap;
   }
@@ -2298,10 +2366,15 @@
     gap: 8px;
     margin-left: auto;
   }
-  /* Global, so the Download button (its own component) shows Downloaded like the others. */
+  /* Global, so the Download button (its own component) matches the others. */
+  .actions :global(.btn) {
+    border-color: transparent;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
   .actions :global(.btn[aria-pressed="true"]) {
-    color: var(--accent);
-    border-color: color-mix(in oklab, var(--accent) 42%, var(--line));
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
   }
   .action-error {
     margin: 0;
@@ -2310,10 +2383,9 @@
   }
 
   .card {
-    padding: 18px 20px;
-    border: 1px solid var(--line-soft);
-    border-radius: var(--r-lg);
-    background: var(--surface);
+    padding: 20px 24px;
+    border-radius: var(--md-sys-shape-lg);
+    background: var(--md-sys-color-surface-container);
   }
   .card-head {
     display: flex;
@@ -2324,9 +2396,8 @@
   }
   .card-title {
     margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    font: 500 16px/24px var(--f-ui);
+    letter-spacing: 0.15px;
   }
   .card-specs.has-rule {
     margin-top: 14px;
@@ -2357,6 +2428,7 @@
   .cast-art > :global(.art) {
     position: absolute;
     inset: 0;
+    border-radius: 50%;
   }
   .cast-name {
     font-size: 12.5px;
@@ -2378,8 +2450,8 @@
   }
   .list-title {
     margin: 0;
-    font-size: 14px;
-    font-weight: 600;
+    font: 500 16px/24px var(--f-ui);
+    letter-spacing: 0.15px;
   }
   /* The season picker keeps its width; a long show name gives way instead. */
   .side-head .eyebrow {
@@ -2389,7 +2461,7 @@
     white-space: nowrap;
   }
   .qitem.is-current {
-    background: var(--surface);
+    background: var(--md-sys-color-secondary-container);
     cursor: default;
   }
   .qnow {
@@ -2397,11 +2469,11 @@
     left: 5px;
     bottom: 5px;
     z-index: 2;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(18, 20, 19, 0.84);
-    color: var(--accent-media);
-    font-size: 11.5px;
+    padding: 2px 8px;
+    border-radius: var(--md-sys-shape-sm);
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font: 500 12px/16px var(--f-ui);
   }
   .qdone {
     display: inline-flex;
@@ -2447,18 +2519,21 @@
     grid-template-columns: 148px minmax(0, 1fr);
     align-items: start;
     gap: 10px;
-    padding: 6px;
+    padding: 8px;
     border: 0;
-    border-radius: var(--r);
+    border-radius: var(--md-sys-shape-lg);
     background: none;
     color: inherit;
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background 0.16s var(--ease);
+    transition: background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
   }
   .qitem:hover {
-    background: var(--surface);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  }
+  .qitem.is-current:hover {
+    background: var(--md-sys-color-secondary-container);
   }
   .qart {
     position: relative;
@@ -2487,15 +2562,14 @@
     right: 0;
     bottom: 0;
     z-index: 2;
-    height: 3px;
+    height: 4px;
     overflow: hidden;
-    border-radius: 0 0 var(--r) var(--r);
-    background: rgba(18, 20, 19, 0.4);
+    background: color-mix(in srgb, var(--md-sys-color-surface) 60%, transparent);
   }
   .qprog span {
     display: block;
     height: 100%;
-    background: var(--accent-media);
+    background: var(--md-sys-color-primary);
   }
   .qbody {
     display: flex;
@@ -2505,13 +2579,13 @@
     padding-top: 2px;
   }
   .qtitle {
-    font-size: 13.5px;
-    font-weight: 500;
-    line-height: 1.32;
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
   }
   .qmeta {
-    font-size: 12.5px;
-    color: var(--ink-3);
+    font: 400 12px/16px var(--f-ui);
+    letter-spacing: 0.4px;
+    color: var(--md-sys-color-on-surface-variant);
     font-variant-numeric: tabular-nums;
   }
   /* Placeholders shaped like the rows; the scan line over them is `.skel` in app.css. */
