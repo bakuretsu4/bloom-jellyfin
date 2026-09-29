@@ -44,6 +44,7 @@ class _SpikePageState extends State<SpikePage> with SingleTickerProviderStateMix
   late final AnimationController spin = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
 
   final ValueNotifier<String> readout = ValueNotifier('measuring...');
+  final ValueNotifier<String> status = ValueNotifier('opening...');
   int frames = 0;
   double worstMs = 0;
   Duration? lastFrame;
@@ -53,7 +54,13 @@ class _SpikePageState extends State<SpikePage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    player.open(Media(Platform.environment['VIDEO'] ?? _sample));
+    final source = Platform.environment['VIDEO'] ?? _sample;
+    player.stream.error.listen((e) => status.value = 'error: $e');
+    player.stream.buffering.listen((b) => status.value = b ? 'buffering...' : 'playing');
+    player.stream.log.listen((l) => debugPrint('mpv [${l.level}] ${l.prefix}: ${l.text.trimRight()}'));
+    player.stream.videoParams.listen((v) => debugPrint('video params: ${v.w}x${v.h}'));
+    player.open(Media(source));
+    status.value = 'source: $source';
     // Every frame the engine actually produces; a persistent callback runs once per frame.
     SchedulerBinding.instance.addPersistentFrameCallback((Duration now) {
       frames++;
@@ -127,17 +134,32 @@ class _SpikePageState extends State<SpikePage> with SingleTickerProviderStateMix
               FilledButton.tonal(onPressed: () => setState(() => showVideo = !showVideo), child: Text(showVideo ? 'Hide video' : 'Show video')),
             ]),
           ),
-          // Layer 3: the readout.
+          // Layer 3: the readouts.
           Positioned(
             top: 24,
             right: 24,
-            child: ValueListenableBuilder<String>(
-              valueListenable: readout,
-              builder: (_, text, __) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
-                child: Text(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 18, color: Colors.white)),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ValueListenableBuilder<String>(
+                  valueListenable: readout,
+                  builder: (_, text, __) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+                    child: Text(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 18, color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ValueListenableBuilder<String>(
+                  valueListenable: status,
+                  builder: (_, text, __) => Container(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+                    child: Text(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.white70)),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
