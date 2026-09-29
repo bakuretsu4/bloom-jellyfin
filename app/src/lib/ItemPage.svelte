@@ -22,6 +22,7 @@
   import { HoverIntent } from "./hover.svelte";
   import { markSource } from "./motion";
   import MediaSpecs from "./MediaSpecs.svelte";
+  import { scheme, seedFromImage } from "./m3";
   import Rail from "./Rail.svelte";
   import Select from "./Select.svelte";
 
@@ -62,6 +63,22 @@
   }
 
   let detail = $state<api.ItemDetail | null>(null);
+  /** The page takes its colours from the title's artwork (Material 3 dynamic colour): a scheme
+   *  worked out from the poster's dominant colour, scoped to this page. */
+  let tonalStyle = $state("");
+  $effect(() => {
+    const art = detail?.poster ?? detail?.backdrop;
+    if (!art) return;
+    let stale = false;
+    seedFromImage(api.imageUrl(art, 160)).then((seed) => {
+      if (stale || !seed) return;
+      const dark = document.documentElement.dataset.scheme !== "light";
+      tonalStyle = Object.entries(scheme(seed, dark))
+        .map(([role, hex]) => `--md-sys-color-${role.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}:${hex}`)
+        .join(";");
+    });
+    return () => (stale = true);
+  });
   let error = $state("");
   let favorite = $state(false);
   let played = $state(false);
@@ -340,7 +357,7 @@
   });
 </script>
 
-<div class="item">
+<div class="item tonal" style={tonalStyle}>
   {#if error}
     <div class="pad">
       <button class="btn" onclick={onBack}><Icon name="chevl" size={14} />Back</button>

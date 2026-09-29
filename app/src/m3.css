@@ -99,7 +99,22 @@
   --md-sys-state-pressed: 0.1;
   --md-sys-state-dragged: 0.16;
 
-  /* Bloom's earlier tokens, as aliases of the roles. */
+  --f-ui: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-ctl: var(--md-sys-shape-md);
+  --r: var(--md-sys-shape-md);
+  --r-lg: var(--md-sys-shape-lg);
+  --ease: var(--md-sys-motion-emphasized);
+  --ease-panel: var(--md-sys-motion-standard);
+  --ease-mech: var(--md-sys-motion-emphasized-decelerate);
+  --shadow: var(--md-sys-elevation-3);
+  --grain: none;
+  color-scheme: dark;
+}
+/* Bloom's earlier tokens, as aliases of the roles. They're declared on .tonal as well as the
+   root, so a page that overrides the colour roles for itself (a title's artwork colour) has
+   them re-resolved inside it. */
+:root,
+.tonal {
   --ground: var(--md-sys-color-surface);
   --surface: var(--md-sys-color-surface-container-low);
   --surface-2: var(--md-sys-color-surface-container);
@@ -114,17 +129,6 @@
   --accent-media: #d98237;
   --good: #7fcf9a;
   --alert: var(--md-sys-color-error);
-
-  --f-ui: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --r-ctl: var(--md-sys-shape-md);
-  --r: var(--md-sys-shape-md);
-  --r-lg: var(--md-sys-shape-lg);
-  --ease: var(--md-sys-motion-emphasized);
-  --ease-panel: var(--md-sys-motion-standard);
-  --ease-mech: var(--md-sys-motion-emphasized-decelerate);
-  --shadow: var(--md-sys-elevation-3);
-  --grain: none;
-  color-scheme: dark;
 }
 :root[data-scheme="light"] {
   --good: #1f6b3d;
@@ -147,3 +151,48 @@
 .t-body-l { font: 400 16px/24px var(--f-ui); letter-spacing: 0.5px; }
 .t-body-m { font: 400 14px/20px var(--f-ui); letter-spacing: 0.25px; }
 .t-body-s { font: 400 12px/16px var(--f-ui); letter-spacing: 0.4px; }
+
+/* Registered as colours so that when a scope (.tonal) takes a new scheme, every colour derived
+   from the roles animates to it instead of snapping. */
+@property --md-sys-color-primary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-primary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-primary-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-primary-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-secondary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-secondary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-secondary-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-secondary-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-tertiary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-tertiary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-tertiary-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-tertiary-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-error { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-error { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-error-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-error-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-background { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-background { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-surface { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-variant { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-on-surface-variant { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-dim { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-bright { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-container-lowest { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-container-low { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-container { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-container-high { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-surface-container-highest { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-outline { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-outline-variant { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-inverse-surface { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-inverse-on-surface { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-inverse-primary { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-scrim { syntax: "<color>"; inherits: true; initial-value: #000; }
+@property --md-sys-color-shadow { syntax: "<color>"; inherits: true; initial-value: #000; }
+:root,
+.tonal {
+  transition-property: --md-sys-color-primary, --md-sys-color-on-primary, --md-sys-color-primary-container, --md-sys-color-on-primary-container, --md-sys-color-secondary, --md-sys-color-on-secondary, --md-sys-color-secondary-container, --md-sys-color-on-secondary-container, --md-sys-color-tertiary, --md-sys-color-on-tertiary, --md-sys-color-tertiary-container, --md-sys-color-on-tertiary-container, --md-sys-color-error, --md-sys-color-on-error, --md-sys-color-error-container, --md-sys-color-on-error-container, --md-sys-color-background, --md-sys-color-on-background, --md-sys-color-surface, --md-sys-color-on-surface, --md-sys-color-surface-variant, --md-sys-color-on-surface-variant, --md-sys-color-surface-dim, --md-sys-color-surface-bright, --md-sys-color-surface-container-lowest, --md-sys-color-surface-container-low, --md-sys-color-surface-container, --md-sys-color-surface-container-high, --md-sys-color-surface-container-highest, --md-sys-color-outline, --md-sys-color-outline-variant, --md-sys-color-inverse-surface, --md-sys-color-inverse-on-surface, --md-sys-color-inverse-primary, --md-sys-color-scrim, --md-sys-color-shadow;
+  transition-duration: var(--md-sys-motion-duration-xlong);
+  transition-timing-function: var(--md-sys-motion-standard);
+}

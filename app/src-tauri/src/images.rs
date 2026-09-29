@@ -37,6 +37,8 @@ pub fn protocol<R: Runtime>(ctx: UriSchemeContext<'_, R>, req: Request<Vec<u8>>,
             Ok(bytes) => Response::builder()
                 .header(header::CONTENT_TYPE, mime(&bytes))
                 .header(header::CACHE_CONTROL, "max-age=31536000, immutable")
+                // So the page can read an image's pixels to take a colour from it (m3.ts).
+                .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .body(bytes),
             Err(e) => Response::builder().status(status(&e)).body(Vec::new()),
         };
