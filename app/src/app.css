@@ -184,17 +184,14 @@ input {
   padding-top: 8vh;
 }
 .page-notice h2 {
-  margin: 0 0 6px;
-  font-stretch: 118%;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  font-size: 1.3rem;
-  line-height: 1.15;
+  margin: 0 0 8px;
+  font: 400 24px/32px var(--f-ui);
 }
 .page-notice p {
   margin: 0 0 16px;
-  font-size: 14px;
-  color: var(--ink-2);
+  font: 400 14px/20px var(--f-ui);
+  letter-spacing: 0.25px;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 /* An empty result, composed rather than a bare line of text. */
@@ -213,9 +210,8 @@ input {
 .empty-art span {
   width: 56px;
   height: 78px;
-  border-radius: var(--r);
-  background: color-mix(in oklab, var(--ink-3) 15%, var(--surface));
-  border: 1px solid var(--line-soft);
+  border-radius: var(--md-sys-shape-md);
+  background: var(--md-sys-color-secondary-container);
 }
 .empty-art span:nth-child(2) {
   transform: translateY(7px);
@@ -227,13 +223,13 @@ input {
 }
 .empty h2 {
   margin: 0;
-  font-size: 16px;
+  font: 400 22px/28px var(--f-ui);
 }
 .empty p {
   margin: 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--ink-2);
+  font: 400 14px/20px var(--f-ui);
+  letter-spacing: 0.25px;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 /* Loading (DESIGN.md §7): a scan head passes down a skeleton shaped like the real layout. Only
@@ -298,6 +294,23 @@ input {
   from {
     opacity: 0.001;
     transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Page changes: M3 fade-through. The outgoing page is gone at once; the incoming one fades up
+   from a slightly smaller scale, after a short beat. Backwards-filled only (see .stagger). Not
+   while watching: mpv follows the player box's measured edges. */
+.stage:not(.is-watching) > :not(.banner) {
+  animation: fade-through var(--md-sys-motion-duration-long) var(--md-sys-motion-emphasized-decelerate) 60ms backwards;
+}
+@keyframes fade-through {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
   }
   to {
     opacity: 1;

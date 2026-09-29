@@ -176,22 +176,25 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    height: 34px;
-    padding: 0 11px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-ctl);
-    background: var(--surface);
-    color: var(--ink);
-    font: inherit;
-    font-size: 13.5px;
+    height: 40px;
+    padding: 0 12px 0 16px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-full);
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     cursor: pointer;
-    transition: background 0.16s var(--ease), border-color 0.16s var(--ease);
+    transition:
+      background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard),
+      border-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
   }
   .trigger:hover {
-    background: var(--surface-2);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   }
   .is-open .trigger {
-    border-color: color-mix(in oklab, var(--accent) 42%, var(--line));
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-primary);
   }
   /* Always whole: a picker reading "Seas..." hides the one thing it's there to show. */
   .value {
@@ -202,10 +205,10 @@
     width: 0;
     height: 0;
     margin-top: 3px;
-    border: 4px solid transparent;
-    border-top-color: var(--ink-3);
+    border: 5px solid transparent;
+    border-top-color: currentColor;
     transform-origin: 50% 25%;
-    transition: transform 0.2s var(--ease);
+    transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized);
   }
   .is-open .caret {
     transform: rotate(180deg);
@@ -218,13 +221,12 @@
     padding: 4px 8px;
     border-color: transparent;
     background: none;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    font: 400 22px/28px var(--f-ui);
+    color: var(--md-sys-color-on-surface);
   }
   .is-heading .trigger:hover,
   .is-heading.is-open .trigger {
-    background: var(--surface);
+    background: var(--md-sys-color-surface-container);
     border-color: transparent;
   }
 
@@ -237,14 +239,14 @@
     max-height: min(340px, 60vh);
     overflow-y: auto;
     margin: 0;
-    padding: 6px;
+    padding: 8px 0;
     list-style: none;
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
+    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-xs);
+    box-shadow: var(--md-sys-elevation-2);
     outline: none;
-    animation: pop 0.2s var(--ease) both;
+    transform-origin: top left;
+    animation: pop var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized-decelerate) both;
   }
   .is-heading .list {
     left: -8px;
@@ -252,7 +254,7 @@
   @keyframes pop {
     from {
       opacity: 0;
-      transform: translateY(-4px);
+      transform: scale(0.92) translateY(-6px);
     }
     to {
       opacity: 1;
@@ -264,20 +266,20 @@
     grid-template-columns: minmax(0, 1fr) auto 14px;
     align-items: center;
     gap: 14px;
-    padding: 7px 8px;
-    border-radius: var(--r-ctl);
-    color: var(--ink-2);
-    font-size: 13.5px;
-    font-weight: 400;
+    min-height: 48px;
+    padding: 0 16px;
+    color: var(--md-sys-color-on-surface);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     white-space: nowrap;
     cursor: pointer;
   }
   li.is-active {
-    background: var(--surface-2);
-    color: var(--ink);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
   }
   li[aria-selected="true"] {
-    color: var(--ink);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
   .label {
     overflow: hidden;

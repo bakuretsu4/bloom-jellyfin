@@ -42,30 +42,32 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    padding: 20px 0 6px;
+    gap: 4px;
+    padding: 24px 0 8px;
   }
   button {
-    min-width: 34px;
-    height: 34px;
-    padding: 0 10px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
     border: 0;
-    border-radius: var(--r-ctl);
+    border-radius: var(--md-sys-shape-full);
     background: none;
-    color: var(--ink-3);
-    font-size: 13.5px;
-    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
-    transition: background 0.16s var(--ease), color 0.16s var(--ease);
+    transition:
+      background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+      color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
   }
   button:hover:not([disabled]) {
-    background: var(--surface-2);
-    color: var(--ink);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    color: var(--md-sys-color-on-surface);
   }
   button[aria-current="page"] {
-    background: var(--accent);
-    color: var(--accent-ink);
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
   }
   button[disabled] {
     opacity: 0.35;

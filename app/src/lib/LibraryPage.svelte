@@ -77,7 +77,7 @@
 </script>
 
 <div class="page">
-  <button class="btn back" onclick={onBack}><Icon name="chevl" size={14} />Back</button>
+  <button class="btn btn-tonal back" onclick={onBack}><Icon name="sym:arrow_back" />Back</button>
 
   <header class="page-head" bind:this={head}>
     <div class="page-heading">
@@ -90,14 +90,14 @@
     </div>
     <div class="head-tools">
       <button
-        class="btn"
+        class="chip"
         aria-pressed={onlyDownloaded}
         onclick={() => {
           onlyDownloaded = !onlyDownloaded;
           page = 0;
         }}
       >
-        <Icon name="download" size={14} />Downloaded
+        <Icon name={onlyDownloaded ? "check" : "download"} />Downloaded
       </button>
       <Select
         label="Sort by"
@@ -147,9 +147,8 @@
     align-items: center;
     gap: 8px;
   }
-  /* Pressed while the filter is on, as the title page's toggles are. */
-  .head-tools .btn[aria-pressed="true"] {
-    color: var(--accent);
-    border-color: color-mix(in oklab, var(--accent) 42%, var(--line));
+  .head-tools .chip {
+    height: 40px;
+    border-radius: var(--md-sys-shape-full);
   }
 </style>
