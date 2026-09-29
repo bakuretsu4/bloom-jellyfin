@@ -112,10 +112,9 @@
     z-index: 30;
     width: 250px;
     padding: 8px;
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
+    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-lg);
+    box-shadow: var(--md-sys-elevation-2);
     animation: pop 0.2s var(--ease) both;
   }
   @keyframes pop {

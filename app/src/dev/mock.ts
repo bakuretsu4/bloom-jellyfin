@@ -61,7 +61,7 @@ const detail = (id: string): ItemDetail => {
 };
 
 const handlers: Record<string, (args: any) => unknown> = {
-  startup: () => ({ account: { server, user }, offline: false, lastAddress: server.address }),
+  startup: () => ({ account: location.search.includes("signin") ? null : { server, user }, offline: false, lastAddress: server.address }),
   settings: () => settings,
   update_settings: (a) => Object.assign(settings, a.settings),
   app_info: () => ({ version: "0.1.0", glRenderer: "mock", playerReady: true, discordReady: false }),

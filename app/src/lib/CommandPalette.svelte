@@ -267,31 +267,38 @@
     align-items: start;
     justify-items: center;
     padding: 12vh 20px 20px;
-    background: rgba(10, 12, 11, 0.55);
-    animation: fade 0.16s var(--ease) both;
+    background: color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent);
+    animation: fade var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard) both;
   }
   @keyframes fade {
     from {
       opacity: 0;
     }
   }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.96);
+    }
+  }
   .palette {
     width: min(620px, 100%);
     overflow: hidden;
     color: var(--ink);
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow);
+    animation: rise var(--md-sys-motion-duration-long) var(--md-sys-motion-emphasized-decelerate) both;
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-xl);
+    box-shadow: var(--md-sys-elevation-3);
   }
   .field {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 0 14px;
-    height: 52px;
-    color: var(--ink-3);
-    border-bottom: 1px solid var(--line-soft);
+    height: 64px;
+    padding: 0 20px;
+    color: var(--md-sys-color-on-surface-variant);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
   .field input {
     flex: 1;
@@ -300,8 +307,8 @@
     outline: none;
     background: none;
     color: var(--ink);
-    font: inherit;
-    font-size: 15px;
+    font: 400 16px/24px var(--f-ui);
+    letter-spacing: 0.5px;
   }
   .field input::placeholder {
     color: var(--ink-3);
@@ -328,20 +335,20 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
-    padding: 6px 8px;
-    border-radius: var(--r-ctl);
-    color: var(--ink-2);
+    padding: 8px 12px;
+    border-radius: var(--md-sys-shape-lg);
+    color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
   }
   li.is-active {
-    background: var(--surface-2);
-    color: var(--ink);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+    color: var(--md-sys-color-on-surface);
   }
   li.group {
     padding: 10px 8px 4px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-3);
+    font: 500 12px/16px var(--f-ui);
+    letter-spacing: 0.5px;
+    color: var(--md-sys-color-primary);
     cursor: default;
   }
   li.group:first-child {

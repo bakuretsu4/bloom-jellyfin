@@ -1,5 +1,50 @@
 # Design System: Bloom
 
+> **Bloom's interface is being rebuilt on Material 3.** This section is current; the sections
+> below it describe the earlier graphite/Archivo design and are kept for reference until they are
+> rewritten. Where they disagree with this section (colour, type, shape, controls, motion), this
+> section wins. Still valid as written: §8 Content Rules and §11 The Mark.
+
+## Material 3 (current)
+
+**Colour.** A full M3 tonal scheme is generated at runtime with Google's HCT
+(`@material/material-color-utilities`) from one seed colour, and written to the root as
+`--md-sys-color-*` (`app/src/lib/m3.ts`). The seed is the chosen accent (amber, green, blue or
+red) or a custom theme's accent. The scheme follows light/dark, including the desktop switching
+while Bloom is open. A title's page takes its own scheme from its poster (Material dynamic colour):
+scope a subtree with `.tonal` and set the roles on it. The roles are registered `@property`
+colours, so a change of scheme animates. Bloom's older tokens (`--ground`, `--surface`, `--ink`,
+`--accent`, ...) are aliases of the roles, kept so unconverted styles keep working; write new
+styles against the `--md-sys-*` tokens.
+
+**Type.** Roboto (bundled, 400/500/700), on the M3 scale (`.t-*` classes in `app/src/m3.css`).
+
+**Shape.** `--md-sys-shape-*`: 4, 8, 12, 16, 28 and full. Cards and artwork use 16, the hero and
+large surfaces 28, buttons and chips full or 8.
+
+**Motion.** M3 easing and duration tokens (`--md-sys-motion-*`). Spatial movement (page arrival,
+menus opening, cards lifting) uses the emphasized curves; colour and opacity use the standard
+ones. Pages arrive with a fade-through, except the watch screen, where mpv follows the player
+box's measured edges and nothing above it may animate. Reduce motion (Settings) and the desktop
+preference turn animation off.
+
+**Controls** (`app/src/m3-components.css`): filled (`.btn-primary`), tonal (`.btn-tonal`),
+outlined (`.btn`) and text (`.btn-text`) buttons; icon buttons; chips; the switch; text fields.
+Every pressable control has a hover, focus and pressed state layer and a ripple (`lib/ripple.ts`,
+one delegated listener).
+
+**Icons.** Material Symbols, Rounded, weight 400, imported one by one in `lib/Icon.svelte`;
+`filled` selects the filled form (current navigation item, toggles that are on).
+
+**Layout.** 80px navigation rail, 64px top app bar that turns tonal when the page scrolls, content
+on the surface. The player's chrome sits over video, so it keeps a dark scrim but uses the scheme's
+primary for the play button, seek and volume.
+
+**Developing.** `npm run dev`, then open `http://localhost:1420/?mock` for the UI in a browser
+against a mock backend (`app/src/dev/mock.ts`); add `&signin` for the sign-in screen. Dev only.
+
+---
+
 A fast Jellyfin desktop client. Linux first, Tauri 2 + Svelte 5.
 
 **Where this lives:** the system was first demonstrated in a single-page HTML prototype, then

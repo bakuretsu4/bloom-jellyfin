@@ -437,6 +437,7 @@
     display: grid;
     grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
     height: 100%;
+    background: var(--md-sys-color-surface);
   }
   .auth-form {
     display: flex;
@@ -444,7 +445,7 @@
     justify-content: center;
     gap: 22px;
     padding: 40px clamp(28px, 4vw, 56px);
-    background: var(--surface);
+    background: var(--md-sys-color-surface);
     min-width: 0;
     overflow-y: auto;
   }
@@ -460,27 +461,21 @@
   }
   .mark {
     display: grid;
-    color: var(--accent);
+    color: var(--md-sys-color-primary);
   }
   .brandname {
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    font-size: 19px;
+    font: 400 22px/28px var(--f-ui);
   }
   .auth-h {
     margin: 0;
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    font-size: 1.7rem;
-    line-height: 1.1;
+    font: 400 32px/40px var(--f-ui);
     overflow-wrap: anywhere;
   }
   .auth-sub {
     margin: 6px 0 0;
-    font-size: 13.5px;
-    color: var(--ink-2);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.25px;
+    color: var(--md-sys-color-on-surface-variant);
     font-variant-numeric: tabular-nums;
   }
   .link {
@@ -488,7 +483,7 @@
     border: 0;
     background: none;
     cursor: pointer;
-    color: var(--accent);
+    color: var(--md-sys-color-primary);
     font-weight: 500;
     text-decoration: underline;
     text-underline-offset: 2px;
@@ -532,26 +527,25 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    padding: 7px 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-ctl);
-    background: var(--ground);
+    padding: 12px 16px;
+    border: 0;
+    border-radius: var(--md-sys-shape-lg);
+    background: var(--md-sys-color-surface-container);
     color: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background 0.16s var(--ease), border-color 0.16s var(--ease);
+    transition: background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
   }
   .nearby-row:hover {
-    background: var(--surface-2);
+    background: var(--md-sys-color-surface-container-high);
   }
   .nearby-row:disabled {
     cursor: default;
     opacity: 0.7;
   }
   .nearby-go {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--accent);
+    font: 500 14px/20px var(--f-ui);
+    color: var(--md-sys-color-primary);
   }
 
   .user-grid {
@@ -565,17 +559,19 @@
     align-items: center;
     gap: 7px;
     width: 78px;
-    padding: 9px 4px;
+    padding: 12px 4px;
     border: 0;
-    border-radius: var(--r);
+    border-radius: var(--md-sys-shape-lg);
     background: none;
     cursor: pointer;
     text-align: center;
-    transition: background 0.16s var(--ease);
+    transition: background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
   }
-  .user-tile:hover,
+  .user-tile:hover {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  }
   .user-tile[aria-pressed="true"] {
-    background: var(--surface-2);
+    background: var(--md-sys-color-secondary-container);
   }
   .mono {
     display: grid;
@@ -583,15 +579,9 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: var(--raise);
-    color: var(--ink-2);
-    font-stretch: 118%;
-    font-weight: 600;
-    font-size: 20px;
-  }
-  .user-tile[aria-pressed="true"] .mono {
-    box-shadow: 0 0 0 2px var(--accent);
-    color: var(--ink);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    font: 500 20px/24px var(--f-ui);
   }
   .uname {
     max-width: 100%;
@@ -618,11 +608,11 @@
   }
   .notice {
     margin: 0;
-    padding: 10px 12px;
-    font-size: 13px;
-    color: var(--ink);
-    background: var(--surface-2);
-    border-radius: var(--r-ctl);
+    padding: 12px 16px;
+    font: 400 14px/20px var(--f-ui);
+    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-secondary-container);
+    border-radius: var(--md-sys-shape-md);
   }
 
   .auth-alt {
@@ -643,16 +633,13 @@
     color: var(--ink-3);
   }
   .qc-code {
-    font-stretch: 118%;
-    font-weight: 600;
-    font-size: 2rem;
-    line-height: 1.2;
+    font: 500 45px/52px var(--f-ui);
     letter-spacing: 0.12em;
     font-variant-numeric: tabular-nums;
-    color: var(--accent);
+    color: var(--md-sys-color-primary);
   }
   .qc-code.is-waiting {
-    color: var(--line);
+    color: var(--md-sys-color-outline-variant);
   }
 
   .auth-brand .back {
@@ -700,18 +687,20 @@
     white-space: nowrap;
   }
   .saved-name {
-    font-size: 14px;
-    font-weight: 600;
+    font: 500 14px/20px var(--f-ui);
   }
   .saved-sub {
-    font-size: 12.5px;
-    color: var(--ink-3);
+    font: 400 12px/16px var(--f-ui);
+    color: var(--md-sys-color-on-surface-variant);
   }
 
+  /* The artwork wall sits in a rounded tonal panel, inset from the window's edge. */
   .auth-art {
     position: relative;
     overflow: hidden;
-    background: var(--ground);
+    margin: 16px 16px 16px 0;
+    border-radius: var(--md-sys-shape-xl);
+    background: var(--md-sys-color-surface-container);
   }
   /* The prototype's right panel: the artwork system at full bleed, four columns tilted and
      scaled past the edges, under a veil that carries the form's surface across. */
@@ -729,16 +718,16 @@
     width: 100%;
     aspect-ratio: 2 / 3;
     object-fit: cover;
-    border-radius: var(--r);
-    background: var(--surface);
+    border-radius: var(--md-sys-shape-lg);
+    background: var(--md-sys-color-surface-container-high);
   }
   .veil {
     position: absolute;
     inset: 0;
     background: linear-gradient(
       100deg,
-      var(--surface) 0%,
-      color-mix(in oklab, var(--surface) 40%, transparent) 34%,
+      var(--md-sys-color-surface-container) 0%,
+      color-mix(in oklab, var(--md-sys-color-surface-container) 40%, transparent) 34%,
       transparent 70%
     );
   }

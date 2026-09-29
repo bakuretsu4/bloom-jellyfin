@@ -21,10 +21,10 @@
   ];
   // Mirrors the pairs in src/app.css.
   const ACCENTS: { id: api.Accent; name: string; light: string; dark: string }[] = [
-    { id: "amber", name: "Tally amber", light: "#9c4e14", dark: "#d98237" },
-    { id: "green", name: "Signal green", light: "#2e6a5c", dark: "#6aa08f" },
-    { id: "blue", name: "Steel blue", light: "#3c5f7d", dark: "#7c9db8" },
-    { id: "red", name: "Clay red", light: "#8e4640", dark: "#c8837b" },
+    { id: "amber", name: "Amber", light: "#e0862b", dark: "#e0862b" },
+    { id: "green", name: "Green", light: "#2e8b6a", dark: "#2e8b6a" },
+    { id: "blue", name: "Blue", light: "#3e6fb0", dark: "#3e6fb0" },
+    { id: "red", name: "Red", light: "#c0463d", dark: "#c0463d" },
   ];
 
   let info = $state<api.AppInfo | null>(null);
@@ -489,27 +489,32 @@
   .settings {
     display: flex;
     flex-direction: column;
-    gap: 36px;
-    max-width: 820px;
+    gap: 24px;
+    max-width: 840px;
   }
+  /* Each group is a tonal card; its title is a small primary label, as in M3 settings lists. */
   .set-section {
     display: flex;
     flex-direction: column;
+    padding: 20px 24px 8px;
+    border-radius: var(--md-sys-shape-xl);
+    background: var(--md-sys-color-surface-container-low);
   }
   .set-head {
     margin-bottom: 4px;
   }
   .set-head h2 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
+    color: var(--md-sys-color-primary);
   }
   .set-head p {
     margin: 4px 0 0;
     max-width: 62ch;
-    font-size: 13px;
-    color: var(--ink-3);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.25px;
+    color: var(--md-sys-color-on-surface-variant);
   }
   /* A two-column grid: name and consequence on the left, the control hard right. */
   .set-row {
@@ -517,8 +522,8 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 24px;
-    padding: 15px 0;
-    border-bottom: 1px solid var(--line-soft);
+    padding: 16px 0;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
   .set-row:last-child {
     border-bottom: 0;
@@ -529,19 +534,19 @@
     gap: 12px;
   }
   .set-name {
-    font-size: 14px;
-    font-weight: 500;
+    font: 400 16px/24px var(--f-ui);
+    letter-spacing: 0.5px;
   }
   .set-hint {
-    margin-top: 3px;
+    margin-top: 2px;
     max-width: 54ch;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--ink-3);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.25px;
+    color: var(--md-sys-color-on-surface-variant);
   }
   .set-hint b {
     font-weight: 500;
-    color: var(--ink-2);
+    color: var(--md-sys-color-on-surface);
   }
 
   .switch:disabled {
@@ -560,50 +565,56 @@
   .set-input {
     width: 260px;
     max-width: 100%;
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-ctl);
-    background: var(--ground);
-    color: var(--ink);
-    font: inherit;
-    font-size: 13.5px;
+    height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: var(--md-sys-shape-xs) var(--md-sys-shape-xs) 0 0;
+    background: var(--md-sys-color-surface-container-highest);
+    box-shadow: inset 0 -1px 0 var(--md-sys-color-on-surface-variant);
+    color: var(--md-sys-color-on-surface);
+    font: 400 14px/20px var(--f-ui);
+    transition: box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
   }
   .set-input:focus-visible {
     outline: none;
-    border-color: var(--accent);
+    box-shadow: inset 0 -2px 0 var(--md-sys-color-primary);
   }
   .set-input[aria-invalid="true"] {
-    border-color: var(--alert);
+    box-shadow: inset 0 -2px 0 var(--md-sys-color-error);
   }
 
   .seg {
     display: inline-flex;
-    gap: 2px;
-    padding: 3px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-ctl);
-    background: var(--surface);
+    /* M3 segmented button: joined pills with a shared outline; the chosen one fills. */
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-full);
+    overflow: hidden;
   }
   .seg button {
-    padding: 5px 11px;
+    height: 40px;
+    padding: 0 16px;
     border: 0;
-    border-radius: 4px;
+    border-left: 1px solid var(--md-sys-color-outline);
+    border-radius: 0;
     background: none;
-    color: var(--ink-2);
-    font: inherit;
-    font-size: 13px;
+    color: var(--md-sys-color-on-surface);
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 0.16s var(--ease), color 0.16s var(--ease);
+    transition:
+      background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+      color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+  }
+  .seg button:first-child {
+    border-left: 0;
   }
   .seg button:hover {
-    color: var(--ink);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   }
   .seg button[aria-pressed="true"] {
-    background: var(--raise);
-    color: var(--ink);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 
   .accents {
@@ -612,26 +623,24 @@
   }
   /* Each swatch shows the half of its pair the current theme uses. */
   .accents button {
-    width: 28px;
-    height: 28px;
+    width: 40px;
+    height: 40px;
     padding: 0;
-    border: 2px solid transparent;
-    border-radius: 7px;
+    border: 3px solid transparent;
+    border-radius: 50%;
     background: var(--pair-light);
-    box-shadow: inset 0 0 0 2px var(--ground);
+    background-clip: padding-box;
+    box-shadow: inset 0 0 0 3px var(--md-sys-color-surface-container-low);
     cursor: pointer;
-    transition: border-color 0.16s var(--ease);
+    transition:
+      border-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+      transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized);
+  }
+  .accents button:hover {
+    transform: scale(1.1);
   }
   .accents button[aria-pressed="true"] {
-    border-color: var(--ink);
-  }
-  :global(:root[data-theme="dark"]) .accents button {
-    background: var(--pair-dark);
-  }
-  @media (prefers-color-scheme: dark) {
-    :global(:root:not([data-theme="light"])) .accents button {
-      background: var(--pair-dark);
-    }
+    border-color: var(--md-sys-color-on-surface);
   }
 
   .zoom {
@@ -655,15 +664,16 @@
     display: grid;
     grid-template-columns: 160px minmax(0, 1fr);
     gap: 16px;
-    padding: 11px 0;
-    border-bottom: 1px solid var(--line-soft);
-    font-size: 13.5px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.25px;
   }
   .about div:last-child {
     border-bottom: 0;
   }
   .about dt {
-    color: var(--ink-3);
+    color: var(--md-sys-color-on-surface-variant);
   }
   .about dd {
     margin: 0;

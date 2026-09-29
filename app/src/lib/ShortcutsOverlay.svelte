@@ -99,7 +99,7 @@
     display: grid;
     place-items: center;
     padding: 20px;
-    background: rgba(10, 12, 11, 0.55);
+    background: color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent);
     animation: fade 0.2s var(--ease) both;
   }
   @keyframes fade {
@@ -113,10 +113,9 @@
     overflow-y: auto;
     padding: 20px 22px 22px;
     color: var(--ink);
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow);
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-xl);
+    box-shadow: var(--md-sys-elevation-3);
   }
   .head {
     display: flex;
