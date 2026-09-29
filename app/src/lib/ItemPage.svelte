@@ -360,7 +360,7 @@
 <div class="item tonal" style={tonalStyle}>
   {#if error}
     <div class="pad">
-      <button class="btn" onclick={onBack}><Icon name="chevl" size={14} />Back</button>
+      <button class="btn btn-tonal" onclick={onBack}><Icon name="sym:arrow_back" />Back</button>
       <div class="page-notice" role="alert">
         <h2>Couldn't load this</h2>
         <p>{error}</p>
@@ -379,7 +379,7 @@
         {/if}
         <div class="veil"></div>
       </div>
-      <button class="btn back" onclick={onBack}><Icon name="chevl" size={14} />Back</button>
+      <button class="btn btn-tonal back" onclick={onBack}><Icon name="sym:arrow_back" />Back</button>
 
       <div class="hero-content">
         {#if detail.logo && !logoBroken}
@@ -400,20 +400,20 @@
           {#if detail.play}
             {@const target = detail.play}
             <button class="btn btn-primary" onclick={() => onPlay(target.itemId)}>
-              <Icon name="play" size={16} />{target.label}
+              <Icon name="play" />{target.label}
             </button>
           {/if}
           {#if detail.trailers?.length}
-            <button class="btn" onclick={watchTrailer}><Icon name="theater" size={16} />Trailer</button>
+            <button class="btn" onclick={watchTrailer}><Icon name="theater" />Trailer</button>
           {/if}
           {#if !isSeries && !isCollection}
             <button class="btn" aria-pressed={played} disabled={busy} onclick={() => toggle("played")}>
-              <Icon name="check" size={16} />{played ? "Watched" : "Mark watched"}
+              <Icon name="check" />{played ? "Watched" : "Mark watched"}
             </button>
             <DownloadButton itemId={detail.id} {onOpenDownloads} onError={(e) => (actionError = failed(e))} />
           {/if}
           <button class="btn" aria-pressed={favorite} disabled={busy} onclick={() => toggle("favorite")}>
-            <Icon name="heart" size={16} />{favorite ? "Favorited" : "Favorite"}
+            <Icon name="heart" filled={favorite} />{favorite ? "Favorited" : "Favorite"}
           </button>
         </div>
         {#if actionError}<p class="inline-error" role="alert">{actionError}</p>{/if}
@@ -468,7 +468,15 @@
     {#if isSeries}
       <section class="section" aria-label="Episodes" bind:this={episodesSection}>
         <div class="section-head">
-          {#if detail.seasons.length > 1}
+          {#if detail.seasons.length > 1 && detail.seasons.length <= 8}
+            <div class="season-chips" role="group" aria-label="Season">
+              {#each detail.seasons as s (s.id)}
+                <button class="chip" aria-pressed={s.id === seasonId} onclick={() => chooseSeason(s.id)}>
+                  {#if s.id === seasonId}<Icon name="check" />{/if}{s.name}
+                </button>
+              {/each}
+            </div>
+          {:else if detail.seasons.length > 1}
             <Select look="heading" label="Season" value={seasonId ?? ""} options={seasonOptions} onChange={(next) => chooseSeason(next)} />
           {:else}
             <h2 class="section-title">{season?.name ?? "Episodes"}</h2>
@@ -478,15 +486,15 @@
               {season.episodeCount} {season.episodeCount === 1 ? "episode" : "episodes"}{season.unplayed ? `, ${season.unplayed} unwatched` : ""}
             </span>
           {/if}
-          <button class="btn sort" onclick={() => (newestFirst = !newestFirst)}>
-            <Icon name="sort" size={14} />{newestFirst ? "Newest first" : "Oldest first"}
+          <button class="btn btn-text sort" onclick={() => (newestFirst = !newestFirst)}>
+            <Icon name="sort" />{newestFirst ? "Newest first" : "Oldest first"}
           </button>
           {#if season}
-            <button class="btn" aria-pressed={seasonWatched} disabled={seasonMarking || !episodes} onclick={toggleSeasonPlayed}>
-              <Icon name="check" size={14} />{seasonWatched ? "Mark season unwatched" : "Mark season watched"}
+            <button class="btn btn-text" aria-pressed={seasonWatched} disabled={seasonMarking || !episodes} onclick={toggleSeasonPlayed}>
+              <Icon name="check" />{seasonWatched ? "Mark season unwatched" : "Mark season watched"}
             </button>
-            <button class="btn" disabled={seasonQueuing || !episodes} onclick={downloadSeason}>
-              <Icon name={seasonListed ? "check" : "download"} size={14} />{seasonListed ? "Season in Downloads" : "Download season"}
+            <button class="btn btn-text" disabled={seasonQueuing || !episodes} onclick={downloadSeason}>
+              <Icon name={seasonListed ? "check" : "download"} />{seasonListed ? "Season in Downloads" : "Download season"}
             </button>
           {/if}
         </div>
@@ -522,7 +530,7 @@
                 >
                   <span class="ep-shot">
                     <Art image={ep.image} title={ep.title} width={320} />
-                    <span class="ep-play" aria-hidden="true"><Icon name="play" size={20} /></span>
+                    <span class="ep-play" aria-hidden="true"><Icon name="play" size={28} /></span>
                     {#if upNext}<span class="ep-badge">{detail.play?.resume ? "Continue" : "Up next"}</span>{/if}
                     {#if ep.runtimeMinutes}<span class="ep-dur">{runtime(ep.runtimeMinutes)}</span>{/if}
                     {#if ep.progress}<span class="ep-progress"><span style:width="{Math.round(ep.progress * 100)}%"></span></span>{/if}
@@ -577,7 +585,7 @@
                       aria-expanded={menuFor === ep.id}
                       onclick={() => (menuFor = menuFor === ep.id ? null : ep.id)}
                     >
-                      <Icon name="more" size={16} />
+                      <Icon name="more" />
                     </button>
                     {#if menuFor === ep.id}
                       {@const listed = downloadOf(ep.id)}
@@ -600,13 +608,13 @@
             <nav class="season-nav" aria-label="Seasons">
               {#if seasonIndex > 0}
                 {@const prev = detail.seasons[seasonIndex - 1]}
-                <button class="btn" onclick={() => chooseSeason(prev.id, true)}><Icon name="chevl" size={14} />{prev.name}</button>
+                <button class="btn" onclick={() => chooseSeason(prev.id, true)}><Icon name="chevl" />{prev.name}</button>
               {:else}
                 <span></span>
               {/if}
               {#if seasonIndex >= 0 && seasonIndex < detail.seasons.length - 1}
                 {@const next = detail.seasons[seasonIndex + 1]}
-                <button class="btn" onclick={() => chooseSeason(next.id, true)}>{next.name}<Icon name="chevr" size={14} /></button>
+                <button class="btn" onclick={() => chooseSeason(next.id, true)}>{next.name}<Icon name="chevr" /></button>
               {/if}
             </nav>
           {/if}
@@ -682,7 +690,7 @@
     overflow: hidden;
   }
   .hero.is-loading {
-    background: var(--surface);
+    background: var(--md-sys-color-surface-container);
   }
   .hero-art {
     position: absolute;
@@ -738,11 +746,10 @@
     object-position: left bottom;
   }
   .hero-title {
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    font-size: clamp(2rem, 4vw, 3.2rem);
-    line-height: 1.02;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    font-size: clamp(2.25rem, 4vw, 3.5rem);
+    line-height: 1.1;
     overflow-wrap: anywhere;
   }
   .meta-line {
@@ -763,7 +770,7 @@
   .tag {
     padding: 1px 6px;
     border: 1px solid var(--line);
-    border-radius: 5px;
+    border-radius: var(--md-sys-shape-xs);
     font-size: 11.5px;
     white-space: nowrap;
   }
@@ -779,14 +786,14 @@
     margin-top: 8px;
   }
   /* Global, so the Download button (its own component) matches the others in the row. */
-  .actions :global(.btn) {
-    height: 40px;
-    padding: 0 16px;
-    font-size: 14px;
+  .actions :global(.btn:not(.btn-primary)) {
+    border-color: transparent;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
   .actions :global(.btn[aria-pressed="true"]) {
-    color: var(--accent);
-    border-color: color-mix(in oklab, var(--accent) 42%, var(--line));
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
   }
   .collection-link {
     margin-top: 12px;
@@ -802,8 +809,8 @@
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     gap: 18px 56px;
     margin-inline: var(--gutter);
-    padding-block: 6px 26px;
-    border-bottom: 1px solid var(--line-soft);
+    padding-block: 12px 28px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
   .about-text {
     min-width: 0;
@@ -833,10 +840,9 @@
     padding: 0;
     border: 0;
     background: none;
-    color: var(--accent);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 500;
+    color: var(--md-sys-color-primary);
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     cursor: pointer;
   }
   .more:hover {
@@ -879,9 +885,12 @@
   }
   .section-title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    font: 400 22px/28px var(--f-ui);
+  }
+  .season-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .media-title {
     margin-bottom: 14px;
@@ -925,8 +934,18 @@
     position: absolute;
     inset: 0;
   }
-  .ep-main:hover .ep-shot > :global(.art) {
-    filter: brightness(1.07);
+  .ep-shot > :global(.art) {
+    transition:
+      transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized),
+      box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+  }
+  .ep-main:hover .ep-shot > :global(.art),
+  .ep-main:focus-visible .ep-shot > :global(.art) {
+    transform: scale(1.03);
+    box-shadow: var(--md-sys-elevation-3);
+  }
+  .ep-main:active .ep-shot > :global(.art) {
+    transform: scale(0.98);
   }
   .ep-main:focus-visible {
     outline: none;
@@ -941,17 +960,19 @@
     left: 50%;
     top: 50%;
     z-index: 2;
-    width: 46px;
-    height: 46px;
+    width: 56px;
+    height: 56px;
     display: grid;
     place-items: center;
-    padding-left: 3px;
     border-radius: 50%;
-    background: rgba(18, 20, 19, 0.62);
-    color: #f2f4f3;
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    box-shadow: var(--md-sys-elevation-2);
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+    transform: translate(-50%, -50%) scale(0.6);
+    transition:
+      opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-standard),
+      transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized);
   }
   .ep-main:hover .ep-play,
   .ep-main:focus-visible .ep-play {
@@ -962,21 +983,24 @@
   .ep-badge {
     position: absolute;
     z-index: 2;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(18, 20, 19, 0.84);
-    font-size: 11.5px;
+    padding: 2px 8px;
+    border-radius: var(--md-sys-shape-sm);
+    background: color-mix(in srgb, var(--md-sys-color-surface) 82%, transparent);
+    backdrop-filter: blur(8px);
+    font: 500 12px/16px var(--f-ui);
     font-variant-numeric: tabular-nums;
   }
   .ep-dur {
-    right: 6px;
-    bottom: 6px;
-    color: #edefee;
+    right: 8px;
+    bottom: 8px;
+    color: var(--md-sys-color-on-surface);
   }
   .ep-badge {
-    left: 6px;
-    top: 6px;
-    color: var(--accent-media);
+    left: 8px;
+    top: 8px;
+    background: var(--md-sys-color-primary);
+    backdrop-filter: none;
+    color: var(--md-sys-color-on-primary);
   }
   .ep-progress {
     position: absolute;
@@ -984,15 +1008,15 @@
     right: 0;
     bottom: 0;
     z-index: 2;
-    height: 3px;
+    height: 4px;
     overflow: hidden;
-    border-radius: 0 0 var(--r) var(--r);
-    background: rgba(18, 20, 19, 0.4);
+    background: color-mix(in srgb, var(--md-sys-color-surface) 60%, transparent);
   }
   .ep-progress span {
     display: block;
     height: 100%;
-    background: var(--accent-media);
+    border-radius: 0 2px 2px 0;
+    background: var(--md-sys-color-primary);
   }
   .ep-series {
     overflow: hidden;
@@ -1003,10 +1027,9 @@
   }
   .ep-title {
     display: flex;
-    gap: 7px;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.3;
+    gap: 8px;
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
   }
   .ep-code {
     flex: none;
@@ -1040,20 +1063,21 @@
     margin-left: auto;
   }
   .ep-more {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: var(--r-ctl);
+    border-radius: var(--md-sys-shape-full);
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
     background: none;
     color: var(--ink-2);
     cursor: pointer;
   }
   .ep-more:hover,
   .ep-more[aria-expanded="true"] {
-    background: var(--surface);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
     color: var(--ink);
   }
   .ep-menu {
@@ -1062,17 +1086,17 @@
     top: calc(100% + 4px);
     z-index: 20;
     min-width: 180px;
-    padding: 6px;
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    animation: pop 0.2s var(--ease) both;
+    padding: 8px 0;
+    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-xs);
+    box-shadow: var(--md-sys-elevation-2);
+    transform-origin: top right;
+    animation: pop var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized-decelerate) both;
   }
   @keyframes pop {
     from {
       opacity: 0;
-      transform: translateY(-4px);
+      transform: scale(0.9) translateY(-6px);
     }
     to {
       opacity: 1;
@@ -1082,26 +1106,25 @@
   .ep-menu-item {
     display: block;
     width: 100%;
-    padding: 7px 8px;
+    padding: 0 12px;
+    height: 48px;
     border: 0;
-    border-radius: var(--r-ctl);
     background: none;
-    color: var(--ink-2);
-    font: inherit;
-    font-size: 13px;
+    color: var(--md-sys-color-on-surface);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
     text-align: left;
     cursor: pointer;
   }
   .ep-menu-item:hover,
   .ep-menu-item:focus-visible {
     outline: none;
-    background: var(--surface-2);
-    color: var(--ink);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
   }
   /* Placeholders shaped like the tiles; the scan line over them is `.skel` in app.css. */
   .ep.is-loading .ep-shot {
-    border-radius: var(--r);
-    background: var(--surface);
+    border-radius: var(--md-sys-shape-lg);
+    background: var(--md-sys-color-surface-container);
   }
   .sk-line {
     width: 70%;
@@ -1130,7 +1153,7 @@
     justify-content: space-between;
     margin-top: 26px;
     padding-top: 14px;
-    border-top: 1px solid var(--line-soft);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
   }
 
   .person {
@@ -1150,15 +1173,14 @@
   .person-art > :global(.art) {
     position: absolute;
     inset: 0;
+    border-radius: 50%;
   }
   .person-name {
-    font-size: 12.5px;
-    font-weight: 500;
-    line-height: 1.3;
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
   }
   .person-role {
-    font-size: 11.5px;
-    line-height: 1.3;
+    font: 400 12px/16px var(--f-ui);
     color: var(--ink-3);
   }
 

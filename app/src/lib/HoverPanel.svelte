@@ -142,23 +142,22 @@
     flex-direction: column;
     gap: 8px;
     padding: 14px 16px 10px;
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow);
-    color: var(--ink);
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-lg);
+    box-shadow: var(--md-sys-elevation-3);
+    color: var(--md-sys-color-on-surface);
     text-align: left;
     white-space: normal;
     /* The contents adapt to a narrow card (a poster in a rail) with container queries. */
     container-type: inline-size;
-    animation: lift 0.18s var(--ease) both;
+    animation: lift var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized-decelerate) both;
   }
   /* Exactly the artwork's size: tighter, and nothing may spill past it. */
   .hover-card.is-cover {
     gap: 5px;
     padding: 10px 11px 6px;
     overflow: hidden;
-    border-radius: var(--r);
+    border-radius: var(--md-sys-shape-lg);
   }
   .hover-card.is-link {
     cursor: pointer;
@@ -166,7 +165,7 @@
   @keyframes lift {
     from {
       opacity: 0;
-      transform: scale(0.97);
+      transform: scale(0.94);
     }
     to {
       opacity: 1;

@@ -70,7 +70,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   library_items: () => ({ total: TITLES.length, shape: "poster", cards: cards(0, TITLES.length) }),
   item_detail: (a) => detail(a.itemId),
   season_list: (a) => ({ seasons: detail("item-1").seasons, seasonId: a.seasonId ?? "s1", next: null, entries: Array.from({ length: 8 }, (_, k) => ({ id: `ep${k}`, title: `Episode ${k + 1}`, meta: `S1 · E${k + 1}`, image: img(`ep${k}`, "Thumb"), runtimeMinutes: 42, progress: k === 2 ? 0.4 : null, played: k < 2, overview: "The crew follows a faint signal past the edge of the map.", premiereDate: "2023-04-0" + (k + 1) })) }),
-  season_episodes: () => ({ total: 8, episodes: [] }),
+  season_episodes: () => ({ total: 8, episodes: Array.from({ length: 8 }, (_, k) => ({ id: `ep${k}`, number: k + 1, title: ["Pilot", "The Signal", "Low Tide", "Static", "Northbound", "Ashes", "The Long Way", "Finale"][k], overview: "The crew follows a faint signal past the edge of the map.", runtimeMinutes: 42, image: img(`ep${k}`, "Thumb"), played: k < 2, progress: k === 2 ? 0.4 : null, premiereDate: "2023-04-0" + (k + 1), audioLanguages: ["eng", "jpn"], hasSubtitles: true })) }),
   search: () => cards(0, 8), similar: () => cards(4, 8), item_collections: () => [], downloads: () => [],
   saved_accounts: () => [{ server, user, current: true }], servers: () => [{ server, lastSeen: 1, current: true, accounts: [user] }],
   cached_posters: () => [], downloaded_titles: () => [], download_storage: () => ({ used: 0, free: 1e11 }),
