@@ -1,0 +1,260 @@
+/* Material 3 controls shared across screens: buttons, icon buttons, chips, text fields and the
+   switch. Every interactive control gets a state layer (::before, tinted by its content
+   colour) and a ripple (lib/ripple.ts adds the .ripple span). */
+
+.btn,
+.iconbtn,
+.chip {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.btn::before,
+.iconbtn::before,
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: currentColor;
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
+}
+.btn:hover::before,
+.iconbtn:hover::before,
+.iconbtn[aria-expanded="true"]::before,
+.chip:hover::before {
+  opacity: var(--md-sys-state-hover);
+}
+.btn:focus-visible::before,
+.iconbtn:focus-visible::before,
+.chip:focus-visible::before {
+  opacity: var(--md-sys-state-focus);
+}
+.btn:active::before,
+.iconbtn:active::before,
+.chip:active::before {
+  opacity: var(--md-sys-state-pressed);
+}
+
+.ripple {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.16;
+  pointer-events: none;
+  transform: scale(0);
+  animation: ripple var(--md-sys-motion-duration-xlong) var(--md-sys-motion-emphasized-decelerate) forwards;
+}
+.ripple.is-done {
+  animation: ripple-out var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard) forwards;
+}
+@keyframes ripple {
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes ripple-out {
+  from {
+    transform: scale(1);
+    opacity: 0.16;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Icon button: 40dp target, circular. */
+.iconbtn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-sys-shape-full);
+  display: grid;
+  place-items: center;
+  background: none;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard),
+    background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+}
+.iconbtn:hover,
+.iconbtn[aria-expanded="true"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Buttons. Default is the outlined button, .btn-primary the filled one, .btn-tonal the
+   filled-tonal one, .btn-text the text button. 40dp tall, fully rounded. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: var(--md-sys-shape-full);
+  font: 500 14px/20px var(--f-ui);
+  letter-spacing: 0.1px;
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-primary);
+  background: transparent;
+  transition: box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+    background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+    transform var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  cursor: default;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  border-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+}
+.btn-primary {
+  border-color: transparent;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+.btn-primary:hover {
+  box-shadow: var(--md-sys-elevation-1);
+}
+.btn-primary:disabled {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+}
+.btn-tonal {
+  border-color: transparent;
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.btn-tonal:hover {
+  box-shadow: var(--md-sys-elevation-1);
+}
+.btn-text {
+  border-color: transparent;
+  padding: 0 12px;
+}
+
+/* Chip: assist / filter, 32dp. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: var(--md-sys-shape-sm);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font: 500 14px/20px var(--f-ui);
+  letter-spacing: 0.1px;
+  transition: background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+    color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+}
+.chip[aria-pressed="true"],
+.chip.is-selected {
+  border-color: transparent;
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* Text field, filled style: a container with a bottom indicator that grows on focus. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field label,
+.field .label {
+  font: 400 12px/16px var(--f-ui);
+  letter-spacing: 0.4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.field input {
+  height: 56px;
+  padding: 0 16px;
+  color: var(--md-sys-color-on-surface);
+  font: 400 16px/24px var(--f-ui);
+  letter-spacing: 0.5px;
+  background: var(--md-sys-color-surface-container-highest);
+  border: 0;
+  border-radius: var(--md-sys-shape-xs) var(--md-sys-shape-xs) 0 0;
+  box-shadow: inset 0 -1px 0 var(--md-sys-color-on-surface-variant);
+  transition: box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+}
+.field input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+.field input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 -2px 0 var(--md-sys-color-primary);
+}
+.field input[aria-invalid="true"] {
+  box-shadow: inset 0 -2px 0 var(--md-sys-color-error);
+}
+.field .hint {
+  font: 400 12px/16px var(--f-ui);
+  letter-spacing: 0.4px;
+  color: var(--md-sys-color-on-surface-variant);
+  padding-inline: 16px;
+}
+
+/* Switch: 52x32 track, handle grows from 16 to 24 when on and to 28 while pressed. */
+.switch {
+  position: relative;
+  width: 52px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--md-sys-shape-full);
+  flex: none;
+  cursor: pointer;
+  background: var(--md-sys-color-surface-container-highest);
+  border: 2px solid var(--md-sys-color-outline);
+  transition: background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+    border-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+}
+.switch span {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--md-sys-color-outline);
+  transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized),
+    width var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized),
+    height var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized),
+    margin var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized),
+    background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+}
+.switch:active span {
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  left: 2px;
+}
+.switch[aria-checked="true"] {
+  background: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+}
+.switch[aria-checked="true"] span {
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+  left: 2px;
+  transform: translateX(20px);
+  background: var(--md-sys-color-on-primary);
+}
+.switch[aria-checked="true"]:active span {
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  transform: translateX(18px);
+}

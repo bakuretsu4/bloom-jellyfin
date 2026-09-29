@@ -2,6 +2,10 @@
 // read by whatever they affect (the theme, the player, motion). Rust keeps them (settings.rs).
 import * as api from "./api";
 import { THEME_PROPERTIES, themeProperties, themeUsable } from "./theme";
+import { applyScheme } from "./m3";
+
+/** Seed colour per curated accent; the Material 3 scheme is worked out from it. */
+const SEEDS: Record<string, string> = { amber: "#e0862b", green: "#2e8b6a", blue: "#3e6fb0", red: "#c0463d" };
 
 export const prefs = $state<{ current: api.Settings | null }>({ current: null });
 
@@ -22,6 +26,14 @@ function apply(settings: api.Settings) {
     else root.dataset.theme = settings.theme;
   }
   root.dataset.accent = settings.accent;
+  const dark =
+    custom && themeUsable(custom)
+      ? custom.base === "dark"
+      : settings.theme === "auto"
+        ? matchMedia("(prefers-color-scheme: dark)").matches
+        : settings.theme === "dark";
+  root.dataset.scheme = dark ? "dark" : "light";
+  applyScheme(custom && themeUsable(custom) ? custom.accent : (SEEDS[settings.accent] ?? SEEDS.amber), dark);
   if (settings.reduceMotion) root.dataset.reduceMotion = "true";
   else delete root.dataset.reduceMotion;
 }
@@ -30,6 +42,8 @@ export async function loadSettings() {
   const loaded = await api.settings();
   prefs.current = loaded;
   apply(loaded);
+  // "Auto" follows the desktop, so the scheme is worked out again when it flips.
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => prefs.current && apply(prefs.current));
 }
 
 /** Shows a change at once, then keeps what Rust saved, or puts things back if saving failed. */

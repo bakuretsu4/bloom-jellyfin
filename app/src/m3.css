@@ -1,0 +1,149 @@
+/* Material 3 design tokens. Colour roles (`--md-sys-color-*`) are written to the root by
+   lib/m3.ts from a seed colour; everything else is fixed here. Bloom's older tokens (`--ground`,
+   `--surface`, `--ink`, `--accent`, ...) are aliases of the roles below, so a screen that hasn't
+   been rebuilt yet still follows the M3 theme. */
+
+@font-face {
+  font-family: "Roboto";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("@fontsource/roboto/files/roboto-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Roboto";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("@fontsource/roboto/files/roboto-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Roboto";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("@fontsource/roboto/files/roboto-latin-700-normal.woff2") format("woff2");
+}
+
+:root {
+  /* Fallback scheme (amber seed, dark) for the moment before lib/m3.ts has run. */
+  --md-sys-color-primary: #ffb77a;
+  --md-sys-color-on-primary: #4a2800;
+  --md-sys-color-primary-container: #6a3b00;
+  --md-sys-color-on-primary-container: #ffdcc1;
+  --md-sys-color-secondary: #e2c0a6;
+  --md-sys-color-on-secondary: #422b18;
+  --md-sys-color-secondary-container: #5b4130;
+  --md-sys-color-on-secondary-container: #ffdcc1;
+  --md-sys-color-tertiary: #c8c98a;
+  --md-sys-color-on-tertiary: #303104;
+  --md-sys-color-tertiary-container: #474819;
+  --md-sys-color-on-tertiary-container: #e4e5a4;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+  --md-sys-color-background: #19120c;
+  --md-sys-color-on-background: #efe0d5;
+  --md-sys-color-surface: #19120c;
+  --md-sys-color-on-surface: #efe0d5;
+  --md-sys-color-surface-variant: #51443b;
+  --md-sys-color-on-surface-variant: #d5c3b8;
+  --md-sys-color-surface-dim: #19120c;
+  --md-sys-color-surface-bright: #403830;
+  --md-sys-color-surface-container-lowest: #140d07;
+  --md-sys-color-surface-container-low: #221a13;
+  --md-sys-color-surface-container: #261e17;
+  --md-sys-color-surface-container-high: #312820;
+  --md-sys-color-surface-container-highest: #3c332b;
+  --md-sys-color-outline: #9d8e83;
+  --md-sys-color-outline-variant: #51443b;
+  --md-sys-color-inverse-surface: #efe0d5;
+  --md-sys-color-inverse-on-surface: #362f28;
+  --md-sys-color-inverse-primary: #8b5000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-shadow: #000000;
+
+  /* Shape */
+  --md-sys-shape-none: 0;
+  --md-sys-shape-xs: 4px;
+  --md-sys-shape-sm: 8px;
+  --md-sys-shape-md: 12px;
+  --md-sys-shape-lg: 16px;
+  --md-sys-shape-xl: 28px;
+  --md-sys-shape-full: 999px;
+
+  /* Motion: easing and duration tokens from the M3 spec. Spatial movement uses the emphasized
+     curves; fades and colour changes use the standard ones. */
+  --md-sys-motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --md-sys-motion-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --md-sys-motion-duration-short: 150ms;
+  --md-sys-motion-duration-medium: 250ms;
+  --md-sys-motion-duration-long: 400ms;
+  --md-sys-motion-duration-xlong: 600ms;
+
+  /* Elevation, as shadow, for the levels a desktop UI uses. Dark themes lean on surface tint
+     (the container roles) rather than shadow, so these stay soft. */
+  --md-sys-elevation-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-4: 0 2px 3px rgb(0 0 0 / 0.3), 0 6px 10px 4px rgb(0 0 0 / 0.15);
+
+  /* State layers */
+  --md-sys-state-hover: 0.08;
+  --md-sys-state-focus: 0.1;
+  --md-sys-state-pressed: 0.1;
+  --md-sys-state-dragged: 0.16;
+
+  /* Bloom's earlier tokens, as aliases of the roles. */
+  --ground: var(--md-sys-color-surface);
+  --surface: var(--md-sys-color-surface-container-low);
+  --surface-2: var(--md-sys-color-surface-container);
+  --raise: var(--md-sys-color-surface-container-high);
+  --line: var(--md-sys-color-outline-variant);
+  --line-soft: color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  --ink: var(--md-sys-color-on-surface);
+  --ink-2: var(--md-sys-color-on-surface-variant);
+  --ink-3: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 78%, var(--md-sys-color-surface));
+  --accent: var(--md-sys-color-primary);
+  --accent-ink: var(--md-sys-color-on-primary);
+  --accent-media: #d98237;
+  --good: #7fcf9a;
+  --alert: var(--md-sys-color-error);
+
+  --f-ui: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-ctl: var(--md-sys-shape-md);
+  --r: var(--md-sys-shape-md);
+  --r-lg: var(--md-sys-shape-lg);
+  --ease: var(--md-sys-motion-emphasized);
+  --ease-panel: var(--md-sys-motion-standard);
+  --ease-mech: var(--md-sys-motion-emphasized-decelerate);
+  --shadow: var(--md-sys-elevation-3);
+  --grain: none;
+  color-scheme: dark;
+}
+:root[data-scheme="light"] {
+  --good: #1f6b3d;
+  color-scheme: light;
+}
+
+/* Type scale (M3 baseline): size / line height / tracking / weight. */
+.t-display-l { font: 400 57px/64px var(--f-ui); letter-spacing: -0.25px; }
+.t-display-m { font: 400 45px/52px var(--f-ui); }
+.t-display-s { font: 400 36px/44px var(--f-ui); }
+.t-headline-l { font: 400 32px/40px var(--f-ui); }
+.t-headline-m { font: 400 28px/36px var(--f-ui); }
+.t-headline-s { font: 400 24px/32px var(--f-ui); }
+.t-title-l { font: 400 22px/28px var(--f-ui); }
+.t-title-m { font: 500 16px/24px var(--f-ui); letter-spacing: 0.15px; }
+.t-title-s { font: 500 14px/20px var(--f-ui); letter-spacing: 0.1px; }
+.t-label-l { font: 500 14px/20px var(--f-ui); letter-spacing: 0.1px; }
+.t-label-m { font: 500 12px/16px var(--f-ui); letter-spacing: 0.5px; }
+.t-label-s { font: 500 11px/16px var(--f-ui); letter-spacing: 0.5px; }
+.t-body-l { font: 400 16px/24px var(--f-ui); letter-spacing: 0.5px; }
+.t-body-m { font: 400 14px/20px var(--f-ui); letter-spacing: 0.25px; }
+.t-body-s { font: 400 12px/16px var(--f-ui); letter-spacing: 0.4px; }
