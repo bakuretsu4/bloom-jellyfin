@@ -1,0 +1,17 @@
+name: flutter_fps_spike
+description: Frame-rate and video-overlay test for a possible Flutter port of Bloom.
+publish_to: none
+version: 0.0.1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  media_kit: ^1.1.11
+  media_kit_video: ^1.2.5
+  media_kit_libs_linux: ^1.1.3
+
+flutter:
+  uses-material-design: true
