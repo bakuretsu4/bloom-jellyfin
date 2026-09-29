@@ -34,13 +34,13 @@
   <h2>{title}</h2>
   <div class="rail-wrap">
     <button class="rail-nav prev" aria-label={`Scroll ${title} back`} disabled={atStart} onclick={() => page(-1)}>
-      <i><Icon name="chevl" size={16} /></i>
+      <i><Icon name="chevl" /></i>
     </button>
     <div class="scroller" bind:this={scroller} onscroll={measure}>
       {@render children()}
     </div>
     <button class="rail-nav next" aria-label={`Scroll ${title} forward`} disabled={atEnd} onclick={() => page(1)}>
-      <i><Icon name="chevr" size={16} /></i>
+      <i><Icon name="chevr" /></i>
     </button>
   </div>
 </section>
@@ -48,9 +48,8 @@
 <style>
   h2 {
     margin: 0 0 12px;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    font: 400 22px/28px var(--f-ui);
+    color: var(--md-sys-color-on-surface);
   }
   .rail-wrap {
     position: relative;
@@ -98,26 +97,31 @@
     left: -8px;
     justify-items: start;
     padding-left: 2px;
-    background: linear-gradient(to right, var(--ground) 46%, transparent);
+    background: linear-gradient(to right, var(--md-sys-color-surface) 46%, transparent);
   }
   .rail-nav.next {
     right: -8px;
     justify-items: end;
     padding-right: 2px;
-    background: linear-gradient(to left, var(--ground) 46%, transparent);
+    background: linear-gradient(to left, var(--md-sys-color-surface) 46%, transparent);
   }
   .rail-nav i {
-    width: 34px;
-    height: 34px;
-    border-radius: var(--r-ctl);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--md-sys-shape-full);
     display: grid;
     place-items: center;
-    background: var(--raise);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-    transition: background 0.16s var(--ease);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    box-shadow: var(--md-sys-elevation-2);
+    transition:
+      transform var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized),
+      box-shadow var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
   }
   .rail-nav:hover i {
-    background: var(--surface-2);
+    box-shadow: var(--md-sys-elevation-3);
+  }
+  .rail-nav:active i {
+    transform: scale(0.92);
   }
 </style>

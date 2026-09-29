@@ -155,8 +155,10 @@
   }
   /* Holds the spotlight's height while it loads, so the rails don't jump down. */
   .spot-placeholder {
-    height: clamp(380px, 58vh, 640px);
-    background: var(--surface);
+    height: clamp(360px, 54vh, 580px);
+    margin: 8px clamp(16px, 2.2vw, 26px) 0;
+    border-radius: var(--md-sys-shape-xl);
+    background: var(--md-sys-color-surface-container);
   }
   .rails {
     display: flex;
@@ -191,8 +193,8 @@
     width: 180px;
     height: 14px;
     margin: 3px 0 15px;
-    border-radius: 4px;
-    background: var(--surface-2);
+    border-radius: var(--md-sys-shape-full);
+    background: var(--md-sys-color-surface-container-high);
   }
   .sk-row {
     display: flex;
@@ -203,8 +205,8 @@
     flex: none;
     width: 240px;
     aspect-ratio: 2 / 3;
-    border-radius: var(--r);
-    background: var(--surface);
+    border-radius: var(--md-sys-shape-lg);
+    background: var(--md-sys-color-surface-container);
   }
   .sk-card.is-wide {
     width: 360px;

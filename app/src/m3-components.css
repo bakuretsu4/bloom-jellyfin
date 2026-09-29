@@ -258,3 +258,11 @@
   margin-top: -14px;
   transform: translateX(18px);
 }
+
+/* Icons inside buttons and chips are 18dp, as in the spec. */
+.btn > svg,
+.chip > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}

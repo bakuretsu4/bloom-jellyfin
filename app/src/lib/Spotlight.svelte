@@ -189,7 +189,7 @@
         <button class="btn btn-primary" onclick={() => onPlay(current.id)}>
           <Icon name="play" size={16} />Play
         </button>
-        <button class="btn" aria-pressed={isFavorite} disabled={favoriteBusy} onclick={toggleFavorite}>
+        <button class="btn btn-tonal" aria-pressed={isFavorite} disabled={favoriteBusy} onclick={toggleFavorite}>
           <Icon name="heart" size={16} />{isFavorite ? "Favorited" : "Favorite"}
         </button>
       </div>
@@ -217,11 +217,14 @@
 <style>
   .spot {
     position: relative;
-    height: clamp(380px, 58vh, 640px);
+    height: clamp(360px, 54vh, 580px);
+    margin: 8px clamp(16px, 2.2vw, 26px) 0;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
-    background: var(--ground);
+    border-radius: var(--md-sys-shape-xl);
+    background: var(--md-sys-color-surface-container);
+    isolation: isolate;
   }
 
   .backdrops {
@@ -236,7 +239,7 @@
     object-fit: cover;
     object-position: 70% 22%;
     opacity: 0;
-    transition: opacity 0.7s var(--ease);
+    transition: opacity var(--md-sys-motion-duration-xlong) var(--md-sys-motion-standard);
   }
   .backdrop.is-current {
     opacity: 1;
@@ -248,12 +251,12 @@
     background:
       linear-gradient(
         90deg,
-        var(--ground) 0%,
-        color-mix(in oklab, var(--ground) 86%, transparent) 28%,
-        color-mix(in oklab, var(--ground) 30%, transparent) 58%,
-        transparent 78%
+        var(--md-sys-color-surface-container) 0%,
+        color-mix(in oklab, var(--md-sys-color-surface-container) 84%, transparent) 30%,
+        color-mix(in oklab, var(--md-sys-color-surface-container) 26%, transparent) 60%,
+        transparent 80%
       ),
-      linear-gradient(0deg, var(--ground) 0%, color-mix(in oklab, var(--ground) 60%, transparent) 18%, transparent 42%);
+      linear-gradient(0deg, var(--md-sys-color-surface-container) 0%, transparent 46%);
   }
 
   .content {
@@ -264,9 +267,9 @@
     align-items: flex-start;
     gap: 12px;
     max-width: min(640px, 100%);
-    padding-inline: clamp(16px, 2.2vw, 26px);
-    padding-block: 0 clamp(26px, 5vh, 48px);
-    animation: rise 0.42s var(--ease-mech) both;
+    padding-inline: clamp(24px, 3vw, 48px);
+    padding-block: 0 clamp(28px, 5vh, 48px);
+    animation: rise var(--md-sys-motion-duration-long) var(--md-sys-motion-emphasized-decelerate) both;
   }
   @keyframes rise {
     from {
@@ -309,11 +312,10 @@
   }
   .title {
     display: block;
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    font-size: clamp(1.9rem, 3.6vw, 3rem);
-    line-height: 1.02;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    font-size: clamp(2rem, 3.6vw, 3.5rem);
+    line-height: 1.1;
     overflow-wrap: anywhere;
   }
 
@@ -323,7 +325,7 @@
     align-items: center;
     gap: 8px;
     font-size: 13.5px;
-    color: var(--ink-2);
+    color: var(--md-sys-color-on-surface-variant);
     font-variant-numeric: tabular-nums;
   }
   .sep {
@@ -336,7 +338,7 @@
     font-size: 11.5px;
     color: var(--ink-2);
     border: 1px solid var(--line);
-    border-radius: 5px;
+    border-radius: var(--md-sys-shape-xs);
     padding: 1px 6px;
     white-space: nowrap;
   }
@@ -361,24 +363,20 @@
 
   .actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     margin-top: 8px;
   }
-  .actions .btn {
-    height: 40px;
-    padding: 0 16px;
-    font-size: 14px;
-  }
   .actions .btn[aria-pressed="true"] {
-    color: var(--accent);
-    border-color: color-mix(in oklab, var(--accent) 42%, var(--line));
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    border-color: transparent;
   }
 
   .pager {
     position: absolute;
     z-index: 1;
-    right: clamp(16px, 2.2vw, 26px);
-    bottom: clamp(26px, 5vh, 48px);
+    right: clamp(24px, 3vw, 48px);
+    bottom: clamp(32px, 5vh, 52px);
     display: flex;
     gap: 6px;
   }
@@ -395,9 +393,9 @@
   .fill {
     position: absolute;
     left: 0;
-    top: 8px;
-    height: 3px;
-    border-radius: 1px;
+    top: 7px;
+    height: 4px;
+    border-radius: 2px;
   }
   .seg::before {
     content: "";

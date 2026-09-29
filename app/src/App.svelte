@@ -69,6 +69,8 @@
   let homeRefresh = $state(0);
   let query = $state("");
   let stage = $state<HTMLElement>();
+  /** The page has scrolled under the top bar, which then takes a tonal surface (M3). */
+  let scrolled = $state(false);
   let searchBox = $state<{ focus: () => void }>();
 
   let route = $derived(history[history.length - 1]);
@@ -440,7 +442,7 @@
 {:else if account}
   {#key `${account.server.id}/${account.user.id}`}
   <div class="shell" class:rail-collapsed={railCollapsed} class:is-watching={!!watching}>
-    <header class="topbar">
+    <header class="topbar" class:is-scrolled={scrolled}>
       <div class="brand">
         <button
           class="iconbtn"
@@ -470,57 +472,56 @@
       </div>
     </header>
 
-    <!-- Only destinations that exist. -->
+    <!-- Only destinations that exist. Material 3 navigation rail: a pill behind the icon marks
+         the current place, and its icon is the filled form. -->
     <nav class="rail" id="rail" aria-label="Sections">
-      <button
-        class="navbtn"
-        class:is-active={!watching && route.name === "home"}
-        aria-label="Home"
-        aria-current={!watching && route.name === "home" ? "page" : undefined}
-        onclick={() => goSection(HOME)}
-      >
-        <Icon name="home" />
-      </button>
-      <button
-        class="navbtn"
-        class:is-active={!watching && (route.name === "libraries" || route.name === "library")}
-        aria-label="Library"
-        aria-current={!watching && route.name === "libraries" ? "page" : undefined}
-        onclick={() => goSection({ name: "libraries" })}
-      >
-        <Icon name="library" />
-      </button>
-      <button
-        class="navbtn"
-        class:is-active={!watching && route.name === "downloads"}
-        aria-label={downloading ? "Downloads, downloading now" : "Downloads"}
-        aria-current={!watching && route.name === "downloads" ? "page" : undefined}
-        onclick={() => goSection({ name: "downloads" })}
-      >
-        <Icon name="download" />
-        {#if downloading}<span class="dot" aria-hidden="true"></span>{/if}
-      </button>
-      {#if watching}
-        <button class="navbtn is-active" aria-label="Now playing" aria-current="page">
-          <Icon name="play-circle" />
+      <div class="rail-top">
+        {#each [
+          { id: "home", label: "Home", icon: "home", active: !watching && route.name === "home", go: () => goSection(HOME) },
+          { id: "library", label: "Library", icon: "library", active: !watching && (route.name === "libraries" || route.name === "library"), go: () => goSection({ name: "libraries" }) },
+          { id: "downloads", label: "Downloads", icon: "download", active: !watching && route.name === "downloads", go: () => goSection({ name: "downloads" }) },
+        ] as const as item (item.id)}
+          <button
+            class="navitem"
+            class:is-active={item.active}
+            aria-label={item.id === "downloads" && downloading ? "Downloads, downloading now" : undefined}
+            aria-current={item.active ? "page" : undefined}
+            onclick={item.go}
+          >
+            <span class="indicator" data-ripple>
+              <Icon name={item.icon} filled={item.active} />
+              {#if item.id === "downloads" && downloading}<span class="dot" aria-hidden="true"></span>{/if}
+            </span>
+            <span class="navlabel">{item.label}</span>
+          </button>
+        {/each}
+        {#if watching}
+          <button class="navitem is-active" aria-current="page">
+            <span class="indicator"><Icon name="play-circle" filled /></span>
+            <span class="navlabel">Playing</span>
+          </button>
+        {/if}
+      </div>
+      <div class="rail-bottom">
+        <button class="navitem" aria-label="Keyboard shortcuts (?)" aria-haspopup="dialog" onclick={() => (shortcutsOpen = true)}>
+          <span class="indicator" data-ripple><Icon name="help" /></span>
+          <span class="navlabel">Shortcuts</span>
         </button>
-      {/if}
-      <span class="rail-spacer"></span>
-      <button class="navbtn" aria-label="Keyboard shortcuts (?)" aria-haspopup="dialog" onclick={() => (shortcutsOpen = true)}>
-        <Icon name="help" />
-      </button>
-      <button
-        class="navbtn"
-        class:is-active={!watching && route.name === "settings"}
-        aria-label="Settings"
-        aria-current={!watching && route.name === "settings" ? "page" : undefined}
-        onclick={() => goSection({ name: "settings" })}
-      >
-        <Icon name="gear" />
-      </button>
+        <button
+          class="navitem"
+          class:is-active={!watching && route.name === "settings"}
+          aria-current={!watching && route.name === "settings" ? "page" : undefined}
+          onclick={() => goSection({ name: "settings" })}
+        >
+          <span class="indicator" data-ripple>
+            <Icon name="gear" filled={!watching && route.name === "settings"} />
+          </span>
+          <span class="navlabel">Settings</span>
+        </button>
+      </div>
     </nav>
 
-    <main class="stage" class:is-watching={!!watching} bind:this={stage}>
+    <main class="stage" class:is-watching={!!watching} bind:this={stage} onscroll={(e) => (scrolled = e.currentTarget.scrollTop > 4)}>
       {#if !watching && offline}
         <div class="banner" role="status">
           <span>
@@ -629,15 +630,17 @@
   }
 
   .shell {
-    --rail-w: 64px;
+    --rail-w: 80px;
+    --bar-h: 64px;
     display: grid;
     grid-template-columns: var(--rail-w) minmax(0, 1fr);
-    grid-template-rows: 56px minmax(0, 1fr);
+    grid-template-rows: var(--bar-h) minmax(0, 1fr);
     height: 100%;
     overflow: hidden;
+    background: var(--md-sys-color-surface);
     /* The rail keeps its grid column when collapsed (narrowed to nothing), so the stage never
        jumps into column one: the prototype's blank-layer bug. */
-    transition: grid-template-columns 0.36s var(--ease-panel);
+    transition: grid-template-columns var(--md-sys-motion-duration-long) var(--md-sys-motion-emphasized);
   }
   .shell.rail-collapsed {
     --rail-w: 0px;
@@ -647,31 +650,37 @@
     transition: none;
   }
 
+  /* Top app bar: flat on the surface until the page scrolls under it, then tonal. */
   .topbar {
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 16px;
-    padding-inline: 14px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--line-soft);
-    transition: opacity 0.35s var(--ease);
+    padding-inline: 4px 16px;
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    z-index: 2;
+    transition:
+      background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+      opacity var(--md-sys-motion-duration-long) var(--md-sys-motion-standard);
+  }
+  .topbar.is-scrolled {
+    background: var(--md-sys-color-surface-container);
   }
   .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex: none;
+    padding-right: 8px;
   }
   .mark {
     display: grid;
-    color: var(--accent);
+    color: var(--md-sys-color-primary);
   }
   .wordmark {
-    font-stretch: 118%;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    font-size: 18px;
+    font: 400 22px/28px var(--f-ui);
+    color: var(--md-sys-color-on-surface);
   }
   .tools {
     display: flex;
@@ -683,53 +692,109 @@
   .rail {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    gap: 4px;
-    width: 64px;
+    width: 80px;
     overflow: hidden;
-    padding-block: 10px;
-    background: var(--surface);
-    border-right: 1px solid var(--line-soft);
+    padding: 44px 0 16px;
+    background: var(--md-sys-color-surface);
     transition:
-      transform 0.36s var(--ease-panel),
-      opacity 0.24s var(--ease-panel);
+      transform var(--md-sys-motion-duration-long) var(--md-sys-motion-emphasized),
+      opacity var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+  }
+  .rail-top,
+  .rail-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
   }
   .shell.rail-collapsed .rail {
-    transform: translateX(-64px);
+    transform: translateX(-80px);
     opacity: 0;
     pointer-events: none;
   }
-  .navbtn {
-    position: relative;
-    width: 46px;
-    height: 44px;
-    display: grid;
-    place-items: center;
+  .navitem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 80px;
     padding: 0;
     border: 0;
-    border-radius: var(--r);
     background: none;
-    color: var(--ink-3);
+    color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
-    transition: background 0.18s var(--ease), color 0.18s var(--ease);
+    font: 500 12px/16px var(--f-ui);
+    letter-spacing: 0.5px;
+    -webkit-tap-highlight-color: transparent;
   }
-  .navbtn:hover {
-    background: var(--surface-2);
-    color: var(--ink);
+  /* The active indicator: a 56x32 pill that grows out from its centre. */
+  .indicator {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 32px;
+    border-radius: 16px;
   }
-  .navbtn.is-active {
-    background: var(--raise);
-    color: var(--accent);
+  .indicator::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--md-sys-color-secondary-container);
+    opacity: 0;
+    transform: scaleX(0.3);
+    transition:
+      transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized),
+      opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
+  }
+  .indicator::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--md-sys-color-on-surface);
+    opacity: 0;
+    transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
+  }
+  .navitem:hover .indicator::after {
+    opacity: var(--md-sys-state-hover);
+  }
+  .navitem:focus-visible {
+    outline: none;
+  }
+  .navitem:focus-visible .indicator::after {
+    opacity: var(--md-sys-state-focus);
+  }
+  .navitem.is-active {
+    color: var(--md-sys-color-on-surface);
+  }
+  .navitem.is-active .indicator {
+    color: var(--md-sys-color-on-secondary-container);
+  }
+  .navitem.is-active .indicator::before {
+    opacity: 1;
+    transform: none;
+  }
+  .navitem.is-active .navlabel {
+    font-weight: 700;
   }
   /* A download is running. */
-  .navbtn .dot {
+  .indicator .dot {
     position: absolute;
-    top: 9px;
-    right: 10px;
-    width: 6px;
-    height: 6px;
+    top: 4px;
+    right: 14px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 2px var(--md-sys-color-surface);
   }
 
   /* Above the page: a server that isn't answering, or an action that failed. Inline, never a modal. */
@@ -740,11 +805,11 @@
     gap: 12px;
     margin: 12px clamp(16px, 2.2vw, 26px) 0;
     padding: 8px 8px 8px 14px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-ctl);
-    background: var(--surface);
-    font-size: 13.5px;
-    color: var(--ink-2);
+    border-radius: var(--md-sys-shape-md);
+    background: var(--md-sys-color-surface-container-high);
+    font: 400 14px/20px var(--f-ui);
+    letter-spacing: 0.25px;
+    color: var(--md-sys-color-on-surface-variant);
   }
   .banner-actions {
     display: flex;
@@ -752,19 +817,15 @@
     gap: 8px;
   }
   .banner.is-alert {
-    border-color: color-mix(in oklab, var(--alert) 45%, var(--line));
-    color: var(--ink);
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
   }
 
-  /* Settings sits at the foot of the rail, apart from the places to browse. */
-  .rail-spacer {
-    flex: 1;
-  }
-
+  /* The stage is a rounded sheet on the surface, as M3 large-screen layouts do it. */
   .stage {
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: var(--ground);
+    background: var(--md-sys-color-surface);
   }
   /* The watch screen paints its own ground around the player box, which mpv shows through. */
   .stage.is-watching {
@@ -780,8 +841,8 @@
     opacity: 0.3;
   }
   :global(:root[data-player-mode="fullscreen"]) .shell {
-    grid-template-columns: 0 minmax(0, 1fr);
-    grid-template-rows: 0 minmax(0, 1fr);
+    --rail-w: 0px;
+    --bar-h: 0px;
   }
   :global(:root[data-player-mode="fullscreen"]) .topbar,
   :global(:root[data-player-mode="fullscreen"]) .rail {
@@ -801,17 +862,16 @@
   }
   .zoom-readout {
     position: fixed;
-    top: 66px;
+    top: 76px;
     left: 50%;
     z-index: 50;
     transform: translateX(-50%);
     padding: 6px 12px;
     border-radius: var(--r-ctl);
-    background: var(--raise);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-    font-size: 13px;
-    font-weight: 500;
+    background: var(--md-sys-color-inverse-surface);
+    color: var(--md-sys-color-inverse-on-surface);
+    box-shadow: var(--md-sys-elevation-3);
+    font: 500 14px/20px var(--f-ui);
     font-variant-numeric: tabular-nums;
   }
 </style>

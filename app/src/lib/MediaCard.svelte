@@ -190,8 +190,19 @@
     text-align: left;
     cursor: pointer;
   }
-  .card.is-link:hover .shot :global(.art) {
-    filter: brightness(1.07);
+  .shot :global(.art) {
+    transition:
+      transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized),
+      box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+  }
+  .card.is-link:hover .shot :global(.art),
+  .card.is-link:focus-visible .shot :global(.art) {
+    transform: scale(1.04);
+    box-shadow: var(--md-sys-elevation-3);
+  }
+  .card.is-link:active .shot :global(.art) {
+    transform: scale(0.98);
+    transition-duration: var(--md-sys-motion-duration-short);
   }
   .card.is-link:focus-visible {
     outline: none;
@@ -214,8 +225,13 @@
   .part:focus-visible {
     outline: none;
   }
-  .part.is-picture:hover .shot :global(.art) {
-    filter: brightness(1.07);
+  .part.is-picture:hover .shot :global(.art),
+  .part.is-picture:focus-visible .shot :global(.art) {
+    transform: scale(1.04);
+    box-shadow: var(--md-sys-elevation-3);
+  }
+  .part.is-picture:active .shot :global(.art) {
+    transform: scale(0.98);
   }
   .part.is-picture:focus-visible .shot {
     outline: 2px solid var(--accent);
@@ -244,7 +260,7 @@
     display: block;
     position: relative;
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
   }
   .is-poster .shot {
     aspect-ratio: 2 / 3;
@@ -266,14 +282,14 @@
     white-space: nowrap;
   }
   .card-title {
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.3;
+    font: 500 14px/20px var(--f-ui);
+    letter-spacing: 0.1px;
+    color: var(--md-sys-color-on-surface);
   }
   .card-meta {
-    font-size: 13px;
-    line-height: 1.3;
-    color: var(--ink-3);
+    font: 400 12px/16px var(--f-ui);
+    letter-spacing: 0.4px;
+    color: var(--md-sys-color-on-surface-variant);
     font-variant-numeric: tabular-nums;
   }
   /* Downloaded: the download glyph in the complete green, on a dark plate so it reads on any art. */
@@ -284,26 +300,27 @@
     z-index: 2;
     display: grid;
     place-items: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    background: rgba(18, 20, 19, 0.72);
-    color: var(--good);
+    width: 24px;
+    height: 24px;
+    border-radius: var(--md-sys-shape-full);
+    background: color-mix(in srgb, var(--md-sys-color-surface) 78%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--md-sys-color-primary);
   }
   .progress {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 3px;
+    height: 4px;
     z-index: 2;
     overflow: hidden;
-    border-radius: 0 0 var(--r) var(--r);
-    background: rgba(18, 20, 19, 0.4);
+    background: color-mix(in srgb, var(--md-sys-color-surface) 60%, transparent);
   }
   .progress span {
     display: block;
     height: 100%;
-    background: var(--accent-media);
+    border-radius: 0 2px 2px 0;
+    background: var(--md-sys-color-primary);
   }
 </style>

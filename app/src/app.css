@@ -47,8 +47,8 @@ input {
 .art {
   position: relative;
   overflow: hidden;
-  border-radius: var(--r);
-  background: color-mix(in oklab, var(--tint, #5e6a74) 19%, var(--surface-2));
+  border-radius: var(--md-sys-shape-lg);
+  background: color-mix(in oklab, var(--tint, #5e6a74) 19%, var(--md-sys-color-surface-container-high));
   display: grid;
   place-items: center;
   isolation: isolate;
@@ -151,16 +151,15 @@ input {
 }
 .page-title {
   margin: 0;
-  font-stretch: 118%;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  font-size: clamp(1.5rem, 2.4vw, 2rem);
-  line-height: 1.08;
+  font-weight: 400;
+  font-size: clamp(1.75rem, 2.4vw, 2rem);
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 .eyebrow {
-  font-size: 12.5px;
-  color: var(--ink-3);
+  font: 400 14px/20px var(--f-ui);
+  letter-spacing: 0.25px;
+  color: var(--md-sys-color-on-surface-variant);
   font-variant-numeric: tabular-nums;
 }
 .media-grid {
@@ -174,8 +173,8 @@ input {
 /* Static placeholders; the scan-line skeleton comes with the motion port. */
 .sk-card {
   aspect-ratio: 2 / 3;
-  border-radius: var(--r);
-  background: var(--surface);
+  border-radius: var(--md-sys-shape-lg);
+  background: var(--md-sys-color-surface-container);
 }
 .sk-card.is-wide {
   aspect-ratio: 16 / 9;

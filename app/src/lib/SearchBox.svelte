@@ -204,50 +204,56 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 34px;
-    padding: 0 10px;
-    color: var(--ink-3);
-    background: var(--ground);
-    border: 1px solid var(--line);
-    border-radius: var(--r-ctl);
-    transition: border-color 0.2s var(--ease);
+    height: 48px;
+    padding: 0 16px;
+    color: var(--md-sys-color-on-surface-variant);
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-full);
+    transition:
+      background-color var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard),
+      box-shadow var(--md-sys-motion-duration-medium) var(--md-sys-motion-standard);
+  }
+  .search:hover {
+    background: var(--md-sys-color-surface-container-highest);
   }
   .search:focus-within {
-    border-color: var(--accent);
+    background: var(--md-sys-color-surface-container-highest);
+    box-shadow: var(--md-sys-elevation-1);
   }
   .search input {
     width: 100%;
     border: 0;
     outline: none;
     background: none;
-    color: var(--ink);
-    font-size: 14px;
+    color: var(--md-sys-color-on-surface);
+    font: 400 16px/24px var(--f-ui);
+    letter-spacing: 0.5px;
   }
   .search input::placeholder {
-    color: var(--ink-3);
+    color: var(--md-sys-color-on-surface-variant);
   }
 
   .suggestions {
     position: absolute;
     left: 0;
     right: 0;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     z-index: 30;
     max-height: min(70vh, 560px);
     overflow-y: auto;
     margin: 0;
-    padding: 6px;
+    padding: 8px;
     list-style: none;
-    background: var(--raise);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    animation: pop 0.18s var(--ease) both;
+    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-xl);
+    box-shadow: var(--md-sys-elevation-3);
+    transform-origin: top center;
+    animation: pop var(--md-sys-motion-duration-medium) var(--md-sys-motion-emphasized-decelerate) both;
   }
   @keyframes pop {
     from {
       opacity: 0;
-      transform: translateY(-4px);
+      transform: scaleY(0.9) translateY(-8px);
     }
     to {
       opacity: 1;
@@ -259,14 +265,15 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
-    padding: 6px 8px;
-    border-radius: var(--r-ctl);
-    color: var(--ink-2);
+    padding: 8px 12px;
+    border-radius: var(--md-sys-shape-lg);
+    color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-standard);
   }
   li.is-active {
-    background: var(--surface-2);
-    color: var(--ink);
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+    color: var(--md-sys-color-on-surface);
   }
   .thumb {
     position: relative;
@@ -292,13 +299,12 @@
     white-space: nowrap;
   }
   .name {
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--ink);
+    font: 500 14px/20px var(--f-ui);
+    color: var(--md-sys-color-on-surface);
   }
   .meta {
-    font-size: 12px;
-    color: var(--ink-3);
+    font: 400 12px/16px var(--f-ui);
+    color: var(--md-sys-color-on-surface-variant);
     font-variant-numeric: tabular-nums;
   }
   .note {
@@ -310,13 +316,9 @@
   .all {
     margin-top: 4px;
     padding-block: 9px;
-    border-top: 1px solid var(--line-soft);
-    border-radius: 0 0 var(--r-ctl) var(--r-ctl);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--accent);
-  }
-  .all.is-active {
-    color: var(--accent);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-sm) var(--md-sys-shape-sm) var(--md-sys-shape-lg) var(--md-sys-shape-lg);
+    font: 500 14px/20px var(--f-ui);
+    color: var(--md-sys-color-primary);
   }
 </style>
