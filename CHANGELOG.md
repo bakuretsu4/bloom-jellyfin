@@ -3,6 +3,20 @@
 All notable changes to Bloom. The format follows [Keep a Changelog](https://keepachangelog.com),
 and versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.1] - 2026-10-30
+
+### Fixed
+
+- **A video kept playing after you left the player.** Clicking the rail, search, a menu or anything
+  else that left the player screen did not stop what was playing; only Back did. Any way out of the
+  player now stops it.
+- **Signing out while watching lost your place.** The sign-in ended before the server was told where
+  playback stopped. It now reports first, then signs out.
+
+### Added
+
+- **A Flatpak** (`Bloom-*-x86_64.flatpak`) beside the AppImage. Bloom isn't on Flathub yet.
+
 ## [0.2.0] - 2026-10-30
 
 A new interface. Still a pre-release.

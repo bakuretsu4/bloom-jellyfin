@@ -39,6 +39,16 @@ export component App inherits Window {
     min-height: 600px;
 
     in property <Screen> screen: Screen.loading;
+    // The player screen was left, by any way out (a rail button, search, a menu, signing out): what was
+    // playing stops. `changed` doesn't say what the screen was, so it is remembered.
+    property <Screen> previous-screen: Screen.loading;
+    callback watch-left();
+    changed screen => {
+        if (root.previous-screen == Screen.watch && root.screen != Screen.watch) {
+            root.watch-left();
+        }
+        root.previous-screen = root.screen;
+    }
     // A short message at the bottom of the window (a snackbar); empty hides it.
     in property <string> message;
 

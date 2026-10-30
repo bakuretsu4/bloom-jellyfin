@@ -30,6 +30,10 @@ the AppImage under `usr/share/doc/<package>/copyright`; to see them, run
 Your system's graphics drivers (Mesa, NVIDIA), Wayland libraries and libva, when present, are
 used from your system and aren't part of the AppImage.
 
+The Flatpak builds libmpv 0.41.0, libass, libplacebo and uchardet from source (named in
+[`packaging/flatpak/dev.bloom.app.yml`](packaging/flatpak/dev.bloom.app.yml)) and uses the Freedesktop
+runtime and its FFmpeg extension from Flathub, each under its own licence.
+
 ## Corresponding source
 
 - **Bloom:** this repository, at the release's tag.

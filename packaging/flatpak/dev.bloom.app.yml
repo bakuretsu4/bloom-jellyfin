@@ -1,0 +1,133 @@
+# Bloom as a Flatpak. Built by packaging/build-flatpak.sh from the last commit (see there).
+#
+# libmpv is built here against the runtime's FFmpeg, and the FFmpeg *extension* (ffmpeg-full) supplies
+# the full codec set at run time, which the runtime's own build leaves out (HEVC, AC-3, DTS, ...).
+# Bloom is built offline from cargo-sources.json, which flatpak-cargo-generator makes from app/Cargo.lock:
+# regenerate it whenever Cargo.lock changes (build-flatpak.sh does).
+app-id: dev.bloom.app
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: bloom
+
+add-extensions:
+  org.freedesktop.Platform.ffmpeg-full:
+    directory: lib/ffmpeg
+    version: '25.08'
+    add-ld-path: .
+    autodownload: true
+    autodelete: false
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  # Downloads go to ~/Videos/Bloom by default.
+  - --filesystem=xdg-videos
+  # Desktop notifications for new media, and keeping the screen awake while a video plays.
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.freedesktop.PowerManagement
+  - --talk-name=org.gnome.SessionManager
+  # Discord presence (Discord's own sandbox puts the socket in its app folder).
+  - --filesystem=xdg-run/discord-ipc-0
+  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+  # The desktop's settings (light or dark, reduced motion, accent) through the portal.
+  - --talk-name=org.freedesktop.portal.Settings
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/cmake
+  - /share/man
+  - '*.a'
+  - '*.la'
+
+modules:
+  - name: ffmpeg-extension-point
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/ffmpeg
+
+  - name: uchardet
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_STATIC=OFF
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    sources:
+      - type: archive
+        url: https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz
+        sha256: e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0
+
+  - name: libass
+    buildsystem: autotools
+    config-opts:
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.xz
+        sha256: eae425da50f0015c21f7b3a9c7262a910f0218af469e22e2931462fed3c50959
+
+  # OpenGL only: Bloom draws through mpv's OpenGL render API into the window's own context.
+  - name: libplacebo
+    buildsystem: meson
+    config-opts:
+      - -Dvulkan=disabled
+      - -Dd3d11=disabled
+      - -Dopengl=enabled
+      - -Dglslang=disabled
+      - -Dshaderc=disabled
+      - -Dlcms=enabled
+      - -Ddemos=false
+      - -Dtests=false
+    sources:
+      - type: git
+        url: https://code.videolan.org/videolan/libplacebo.git
+        tag: v7.351.0
+        commit: 3188549fba13bbdf3a5a98de2a38c2e71f04e21e
+
+  # libmpv only: no player, no Lua (Bloom loads no scripts), no libavdevice (capture devices).
+  - name: mpv
+    buildsystem: meson
+    config-opts:
+      - -Dlibmpv=true
+      - -Dcplayer=false
+      - -Dlua=disabled
+      - -Djavascript=disabled
+      - -Dmanpage-build=disabled
+      - -Dlibavdevice=disabled
+      - -Dvulkan=disabled
+      - -Dbuild-date=false
+    sources:
+      - type: archive
+        url: https://github.com/mpv-player/mpv/archive/refs/tags/v0.41.0.tar.gz
+        sha256: ee21092a5ee427353392360929dc64645c54479aefdb5babc5cfbb5fad626209
+
+  - name: bloom
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/bloom/cargo
+        CARGO_NET_OFFLINE: 'true'
+        # libmpv, built above, is in /app/lib; Rust's linker doesn't look there on its own.
+        LIBRARY_PATH: /app/lib
+    build-commands:
+      - cargo build --offline --release --manifest-path app/Cargo.toml
+      - install -Dm755 app/target/release/bloom /app/bin/bloom
+      - install -Dm644 packaging/dev.bloom.app.desktop /app/share/applications/dev.bloom.app.desktop
+      - install -Dm644 packaging/dev.bloom.app.metainfo.xml /app/share/metainfo/dev.bloom.app.metainfo.xml
+      - install -Dm644 brand/bloom-icon.svg /app/share/icons/hicolor/scalable/apps/dev.bloom.app.svg
+      - for s in 16 24 32 48 64 128 256 512; do install -Dm644 brand/png/bloom-icon-$s.png /app/share/icons/hicolor/${s}x${s}/apps/dev.bloom.app.png; done
+      - install -Dm644 app/assets/fonts/OFL-Roboto.txt /app/share/licenses/dev.bloom.app/OFL-Roboto.txt
+    sources:
+      # The tracked files of the last commit, put here by build-flatpak.sh.
+      - type: dir
+        path: ../out/flatpak-src
+      - cargo-sources.json

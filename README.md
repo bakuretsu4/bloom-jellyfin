@@ -60,6 +60,19 @@ chmod +x Bloom-*-x86_64.AppImage
 The release has a `SHA256SUMS` file to check the download against. If you used Bloom 0.1.x, your
 sign-ins, settings and downloads carry over.
 
+**Flatpak.** The release also has `Bloom-*-x86_64.flatpak`, for any distribution with Flatpak and
+the [Flathub](https://flathub.org/setup) remote (it fetches the Freedesktop runtime and its full
+FFmpeg codecs from there):
+
+```sh
+flatpak install --user Bloom-*-x86_64.flatpak
+flatpak run dev.bloom.app
+```
+
+It installs a launcher entry and icon by itself. Its data lives under `~/.var/app/dev.bloom.app`,
+apart from the AppImage's, so sign in again there. Downloads go to `~/Videos/Bloom`. Trailers play
+in your browser (yt-dlp isn't inside the sandbox). Bloom isn't on Flathub itself yet.
+
 **Requirements**
 
 - 64-bit x86 Linux with glibc 2.39 or newer: Ubuntu 24.04, Debian 13, Fedora 40 or later,

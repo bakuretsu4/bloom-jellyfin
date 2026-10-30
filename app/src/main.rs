@@ -236,6 +236,10 @@ fn main() {
         let (ctx, weak) = (ctx.clone(), weak.clone());
         move |id| nav::go(ctx.clone(), weak.clone(), nav::Route::Title(id.to_string()))
     });
+    app.on_watch_left({
+        let (ctx, weak) = (ctx.clone(), weak.clone());
+        move || watch::left_screen(ctx.clone(), weak.clone())
+    });
     app.on_go_back({
         let (ctx, weak) = (ctx.clone(), weak.clone());
         move || nav::back(ctx.clone(), weak.clone())

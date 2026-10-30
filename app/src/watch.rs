@@ -375,6 +375,25 @@ pub fn leave_to(ctx: Ctx, weak: Weak<App>, route: nav::Route) {
     stop(ctx, weak);
 }
 
+/// Ends playback and waits for the server to be told where it stopped. For what is about to take the
+/// sign-in away (signing out), after which the report could no longer be delivered.
+pub async fn stop_and_report(ctx: &Ctx) {
+    COUNT_RUN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    *watching() = Watching::default();
+    let pb = ctx.state::<Playback>();
+    let _ = playback::playback_stop(ctx, &pb).await;
+}
+
+/// The player screen has gone, however it was left. Whatever is still playing stops, as the Back button
+/// would have stopped it; after Back (which has already stopped it) there is nothing to do.
+pub fn left_screen(ctx: Ctx, weak: Weak<App>) {
+    if current_item().is_empty() {
+        return;
+    }
+    ui(&weak, playpage::reset_mode);
+    stop(ctx, weak);
+}
+
 fn stop(ctx: Ctx, weak: Weak<App>) {
     COUNT_RUN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     *watching() = Watching::default();

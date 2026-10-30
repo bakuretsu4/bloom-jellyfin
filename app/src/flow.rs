@@ -506,6 +506,8 @@ pub fn cancel_sign_in(ctx: Ctx, weak: Weak<App>) {
 pub fn sign_out(ctx: Ctx, weak: Weak<App>) {
     bloom_core::rt::spawn(async move {
         let jf = ctx.state::<Jellyfin>();
+        // Whatever is playing says where it stopped while the sign-in still stands.
+        watch::stop_and_report(&ctx).await;
         let _ = jellyfin::sign_out_with(&jf).await;
         signed_out(&ctx, &weak);
     });

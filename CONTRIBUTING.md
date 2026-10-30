@@ -25,7 +25,9 @@ Replies may take a while.
   player drawn into the window's GL context, `awake/` keeping the screen awake, `theme.rs` the
   colours. The interface runs on one thread; work goes to the core's runtime and comes back with
   `upgrade_in_event_loop`.
-- **`packaging/`:** the AppImage build (an Ubuntu 24.04 Docker image) and its clean-distro test.
+- **`packaging/`:** the AppImage build (an Ubuntu 24.04 Docker image) and its clean-distro test, and the
+  Flatpak (`flatpak/dev.bloom.app.yml`, built by `build-flatpak.sh`; `cargo-sources.json` is made from
+  `app/Cargo.lock`, so it changes with it).
 - **[DESIGN.md](DESIGN.md):** the visual system (colour, type, shape, motion and components). New UI
   should follow it.
 
@@ -95,6 +97,8 @@ while a video plays and fires once playback stops.
 
 **The AppImage:** `packaging/build-appimage.sh` builds it from the last commit (needs Docker), and
 `packaging/test-appimage.sh` checks it on clean Ubuntu 24.04 and Fedora 42 containers.
+`packaging/build-flatpak.sh` builds the Flatpak (needs `flatpak install --user flathub org.flatpak.Builder
+org.freedesktop.Sdk//25.08 org.freedesktop.Sdk.Extension.rust-stable//25.08`).
 
 ## Style
 
