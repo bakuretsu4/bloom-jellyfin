@@ -22,7 +22,7 @@ install.
   Arch, or anything as recent.
 - FUSE 2, which AppImages use to open themselves: `fuse2` on Arch, `libfuse2t64` on Ubuntu,
   `fuse-libs` on Fedora. Without it, start Bloom with `--appimage-extract-and-run`.
-- A Jellyfin server to connect to (Bloom is tested with Jellyfin 10.11).
+- A Jellyfin server to connect to (Bloom is tested with Jellyfin 12.1 and 12.4).
 
 **Adding Bloom to your app menu (optional).** The AppImage carries a launcher entry and icon, but an AppImage doesn't add itself to your menu. Tools
 such as [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) or AppImageLauncher can do it

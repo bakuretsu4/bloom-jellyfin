@@ -19,8 +19,9 @@
 Bloom plays your films and shows from a Jellyfin server in a native window, decoding video on your GPU,
 with the polish of a streaming app. It's built in Rust with [Slint](https://slint.dev) and mpv, and follows Material 3.
 
-> **Pre-release.** Bloom is a personal project in its first public release. It works day to day,
-> but expect rough edges. Bug reports are very welcome; replies may take a while.
+> **Pre-release.** Bloom is a personal project. Version 0.2.0 is a new interface, built from the
+> ground up, so it hasn't had long in the field: expect rough edges. Bug reports are very welcome;
+> replies may take a while.
 
 Bloom is not affiliated with or endorsed by the Jellyfin project.
 
@@ -56,27 +57,31 @@ chmod +x Bloom-*-x86_64.AppImage
 ./Bloom-*-x86_64.AppImage
 ```
 
+The release has a `SHA256SUMS` file to check the download against. If you used Bloom 0.1.x, your
+sign-ins, settings and downloads carry over.
+
 **Requirements**
 
 - 64-bit x86 Linux with glibc 2.39 or newer: Ubuntu 24.04, Debian 13, Fedora 40 or later,
   current Arch, or anything as recent.
 - FUSE 2 to run AppImages (`fuse2` on Arch, `libfuse2t64` on Ubuntu, `fuse-libs` on Fedora).
   Without it, run it with `--appimage-extract-and-run`.
-- A Jellyfin server (tested with 10.11).
+- A Wayland or X11 desktop with OpenGL (Mesa, or NVIDIA's driver).
+- A Jellyfin server (tested with 12.1 and 12.4).
 - For GPU decoding on Intel or AMD, your distribution's VA-API driver (`vainfo` should list your
   GPU). NVIDIA needs only its driver.
 
 **Tested on**
 
-| GPU | Decoder | Setup |
-|---|---|---|
-| NVIDIA RTX 3060 | NVDEC | Arch, KDE Plasma on Wayland |
-| Intel Iris Xe (i5-1334U) | VA-API | Arch, KDE Plasma on Wayland |
-| AMD Radeon Vega 10 (Ryzen 7 3750H) | VA-API | Arch, KDE Plasma on Wayland |
-| NVIDIA GTX 1660 Ti, hybrid laptop | NVDEC | Arch, KDE Plasma on Wayland |
+| GPU | Decoder | Setup | Bloom |
+|---|---|---|---|
+| NVIDIA RTX 3060 | NVDEC | Arch, KDE Plasma on Wayland | 0.2.0 |
+| Intel Iris Xe (i5-1334U) | VA-API | Arch, KDE Plasma on Wayland | 0.1.x only |
+| AMD Radeon Vega 10 (Ryzen 7 3750H) | VA-API | Arch, KDE Plasma on Wayland | 0.1.x only |
+| NVIDIA GTX 1660 Ti, hybrid laptop | NVDEC | Arch, KDE Plasma on Wayland | 0.1.x only |
 
-Plus clean Ubuntu 24.04 and Fedora 42 containers. The line under the player says which decoder
-is in use.
+0.2.0's AppImage also starts on clean Ubuntu 24.04 and Fedora 42 containers (no GPU, so that checks
+the package, not playback). The line under the player says which decoder is in use.
 
 ## Keyboard shortcuts
 
@@ -99,6 +104,9 @@ Press <kbd>?</kbd> in Bloom for the full list. In the player:
 | <kbd>F</kbd> | Full screen |
 | <kbd>Esc</kbd> | Leave theater mode or full screen |
 
+Elsewhere, <kbd>Ctrl</kbd> with <kbd>+</kbd>, <kbd>-</kbd> or the mouse wheel zooms, <kbd>/</kbd> searches,
+and the mouse's back button (or <kbd>Alt</kbd>+<kbd>←</kbd>) goes back.
+
 ## Known issues
 
 - **Hybrid laptops on Wayland:** `prime-run` alone doesn't move Bloom to the NVIDIA GPU. Add
@@ -106,6 +114,8 @@ Press <kbd>?</kbd> in Bloom for the full list. In the player:
   Without either, Bloom runs on the integrated GPU, which works fine.
 - **Seek-bar thumbnails** appear only when the server has generated trickplay images.
 - **Music** has no album downloads, playlists or queue editing yet.
+- **No system tray icon** yet, and the AppImage doesn't add itself to your app menu (see
+  [getting started](docs/getting-started.md)).
 - **Server discovery** finds servers that answer Jellyfin's UDP broadcast on your local network;
   others need their address typed in.
 - Linux and x86_64 only for now.
