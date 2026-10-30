@@ -27,6 +27,8 @@ use tokio::sync::mpsc;
 /// Bloom's application in the Discord Developer Portal: it names the activity and holds the
 /// "bloom" artwork. Not a secret: every copy of Bloom shows presence through it.
 const CLIENT_ID: &str = "1549258214246322297";
+/// Where the presence's button goes.
+const BUTTON_URL: &str = "https://github.com/bakuretsu4/bloom-jellyfin";
 /// Updates arriving this close together (seeking about, the next episode starting) are sent as
 /// one: Discord accepts only a few a minute.
 const COALESCE: Duration = Duration::from_millis(750);
@@ -195,7 +197,13 @@ fn activity_json(a: &Activity, show_title: bool, position: f64, now_ms: i64, cov
         }),
         None => json!({ "large_image": "bloom", "large_text": "Bloom" }),
     };
-    let mut activity = json!({ "type": 3, "assets": assets });
+    // A button to Bloom's page, shown to the people looking at the profile (Discord doesn't show it to
+    // you yourself). Nothing about what is watched is in it.
+    let mut activity = json!({
+        "type": 3,
+        "assets": assets,
+        "buttons": [{ "label": "Get Bloom", "url": BUTTON_URL }],
+    });
     if let Some(details) = details {
         activity["details"] = json!(details);
     }
@@ -473,6 +481,16 @@ mod tests {
         assert_eq!(json["assets"]["small_image"], "bloom");
         let hidden = activity_json(&episode(false, 1.0), false, 600.0, 1_000_000, Some(cover));
         assert_eq!(hidden["assets"]["large_image"], "bloom", "the cover was sent with the title hidden");
+    }
+
+    #[test]
+    fn the_button_points_to_bloom_and_says_nothing_about_what_is_watched() {
+        for show_title in [true, false] {
+            let json = activity_json(&episode(false, 1.0), show_title, 600.0, 1_000_000, None);
+            assert_eq!(json["buttons"], json!([{ "label": "Get Bloom", "url": "https://github.com/bakuretsu4/bloom-jellyfin" }]));
+        }
+        // Discord takes up to two buttons, labels up to 32 characters.
+        assert!("Get Bloom".chars().count() <= 32);
     }
 
     #[test]

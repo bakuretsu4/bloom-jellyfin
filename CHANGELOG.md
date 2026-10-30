@@ -3,6 +3,17 @@
 All notable changes to Bloom. The format follows [Keep a Changelog](https://keepachangelog.com),
 and versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.2] - 2026-10-30
+
+### Added
+
+- **A "Get Bloom" button** on your Discord presence, linking to Bloom's GitHub page. Other people see
+  it on your profile; Discord doesn't show it to you.
+
+### Changed
+
+- The Discord badge is the new blossom (the artwork lives in the Developer Portal; no code change).
+
 ## [0.2.1] - 2026-10-30
 
 ### Fixed

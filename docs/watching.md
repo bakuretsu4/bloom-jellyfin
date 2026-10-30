@@ -114,3 +114,6 @@ playback stops.
 The cover comes from a public metadata site such as TMDB, never from your server, so friends can't
 see your server's address. Turn **Show the title** off to show only that you're watching a show
 or a film. Trailers are never shown.
+
+The presence has a **Get Bloom** button linking to Bloom's GitHub page. Other people see it on your
+profile; Discord doesn't show it to you.

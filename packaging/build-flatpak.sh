@@ -4,7 +4,8 @@
 # (`flatpak install --user flathub org.flatpak.Builder org.freedesktop.Sdk//25.08
 # org.freedesktop.Sdk.Extension.rust-stable//25.08`) and network for the first build's sources.
 #
-#   packaging/build-flatpak.sh            build, and install it for this user to try
+#   packaging/build-flatpak.sh            build only
+#   packaging/build-flatpak.sh --install  also install it for this user, to try
 #   packaging/build-flatpak.sh --bundle   also write packaging/out/Bloom-<version>-x86_64.flatpak
 set -euo pipefail
 
@@ -26,7 +27,9 @@ generator="$out/flatpak-cargo-generator.py"
 [ -f "$generator" ] || curl -fsSL -o "$generator" https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py
 "$venv/bin/python" "$generator" "$src/app/Cargo.lock" -o "$root/packaging/flatpak/cargo-sources.json"
 
-flatpak run --user org.flatpak.Builder --user --force-clean --install --disable-rofiles-fuse \
+install_flag=""
+[ "${1:-}" = "--install" ] && install_flag="--install"
+flatpak run --user org.flatpak.Builder --user --force-clean $install_flag --disable-rofiles-fuse \
   --state-dir="$out/flatpak-state" --repo="$out/flatpak-repo" \
   "$out/flatpak-build" "$root/packaging/flatpak/dev.bloom.app.yml"
 
