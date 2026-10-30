@@ -1,0 +1,1075 @@
+// Bloom's own font, carried inside the program so it looks the same on a desktop without it.
+import "../assets/fonts/Roboto-Regular.ttf";
+import "../assets/fonts/Roboto-Medium.ttf";
+import "../assets/fonts/Roboto-Bold.ttf";
+import { Theme } from "theme.slint";
+import { SignIn, SavedAccountData, NearbyData } from "signin.slint";
+import { Frame, AccountItem, ServerItem, NavTarget, SuggestionData } from "frame.slint";
+import { CardData, SectionData, Hover, HoverCard, HoverData, Grow, GrowOverlay } from "cards.slint";
+import { HomeScreen, SpotlightData } from "home.slint";
+import { LibraryScreen, PagerItem } from "library.slint";
+import { SearchScreen } from "search.slint";
+import { TitleScreen, TitleData, SeasonData, EpisodeData, PersonData, CollectionRow, FactData } from "title.slint";
+import { MetaPart } from "m3.slint";
+import { WatchScreen, TrackData, QueueData, StatRow, Player } from "watch.slint";
+import { SettingsScreen, SettingsData } from "settings.slint";
+import { ThemeEditor, ThemeChip, ThemeCheck } from "themes.slint";
+import { DownloadsScreen, DownloadData, StorageData } from "downloads.slint";
+import { ServersScreen, ServerData } from "servers.slint";
+import { CommandPalette, ShortcutsOverlay, PaletteRow } from "overlays.slint";
+import { Typing } from "m3.slint";
+import { Music, SongData, MusicScreen, MiniPlayer } from "music.slint";
+import { CollectionsDialog, CollectionChoiceData } from "collections.slint";
+import { PageScroll } from "theme.slint";
+import { Launch } from "launch.slint";
+
+export { Music, SongData, CollectionChoiceData, Theme, PageScroll, Grow, SectionData, CardData, TitleData, SeasonData, EpisodeData, PersonData, NavTarget, TrackData, SettingsData, DownloadData, StorageData, SavedAccountData, NearbyData, AccountItem, ServerData, CollectionRow, FactData, MetaPart, Hover, HoverData, SpotlightData, SuggestionData, PagerItem, PaletteRow, ServerItem, QueueData, StatRow, Player, ThemeEditor, ThemeChip, ThemeCheck }
+
+export enum Screen { loading, sign-in, home, library, search, title, settings, downloads, servers, watch, music }
+
+export component App inherits Window {
+    title: "Bloom";
+    icon: @image-url("../assets/bloom-icon.png");
+    // Transparent while watching: the picture is drawn under the window.
+    background: root.screen == Screen.watch ? transparent : Theme.surface;
+    // Opens at 1280x800 and won't go below 900x600, as the Tauri window does.
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    min-width: 900px;
+    min-height: 600px;
+
+    in property <Screen> screen: Screen.loading;
+    // A short message at the bottom of the window (a snackbar); empty hides it.
+    in property <string> message;
+
+    // The session: the server menu, the banners, the rail.
+    in property <string> server-line;
+    in property <[ServerItem]> other-servers;
+    callback server-menu-opened();
+    callback open-server(string);
+    in-out property <bool> rail-collapsed;
+    in property <bool> downloading;
+    in property <bool> has-downloads;
+    in property <bool> offline;
+    in-out property <string> notice;
+    in property <string> signin-notice;
+    callback retry-server();
+
+    // The command palette, the shortcuts panel, and the zoom readout.
+    in-out property <bool> palette-open;
+    in-out property <string> palette-query;
+    in property <[PaletteRow]> palette-rows;
+    in-out property <int> palette-active;
+    in property <string> palette-note;
+    callback palette-opened();
+    callback palette-edited(string);
+    callback palette-accept(int);
+    callback palette-move(int);
+    in-out property <bool> shortcuts-open;
+    in property <string> zoom-readout;
+    callback zoom-step(int);
+    // Counts up each time "/" asks for the search field.
+    in-out property <int> search-focus-tick;
+
+    // Sign-in
+    in property <bool> server-step: true;
+    in property <bool> busy;
+    in property <string> error;
+    in property <string> server-name;
+    in-out property <string> address;
+    in-out property <string> username;
+    in-out property <string> password;
+    callback check-server(string);
+    callback sign-in(string, string);
+    callback change-server();
+    callback sign-out();
+    in property <string> server-detail;
+    in property <[SavedAccountData]> saved-accounts;
+    in property <[NearbyData]> nearby;
+    in property <string> nearby-note;
+    in property <bool> looking;
+    in property <[string]> public-users;
+    in property <bool> qc-available;
+    in property <string> qc-code;
+    in property <string> qc-error;
+    in property <bool> can-cancel-sign-in;
+    // Posters for the wall beside the sign-in form.
+    in property <[image]> wall;
+    // The roll that plays after signing in.
+    in-out property <bool> launching;
+    // Home is ready, so the loader fades out.
+    in-out property <bool> launch-ending;
+    in-out property <bool> remember: true;
+    callback resume-account(string, string);
+    callback forget-account(string, string);
+    callback connect-to(string);
+    callback search-again();
+    callback new-code();
+    callback cancel-sign-in();
+    // The account menu
+    // The signed-in person's picture, or their initial.
+    in property <string> user-initial;
+    in property <image> user-image;
+    in property <bool> has-user-image;
+    in property <[AccountItem]> other-accounts;
+    callback account-menu-opened();
+    callback switch-account(string, string);
+    callback add-account();
+    callback go-servers();
+
+    // Servers
+    in property <[ServerData]> servers-data;
+    in property <bool> servers-loading;
+    in-out property <string> servers-add-address;
+    in property <string> servers-add-error;
+    in property <bool> servers-adding;
+    in property <string> servers-confirm-id;
+    in property <string> servers-confirm-downloads;
+    in property <bool> servers-removing;
+    in property <string> servers-remove-error;
+    callback server-open(string);
+    callback server-check(string);
+    callback server-ask-remove(string);
+    callback server-cancel-remove();
+    callback server-remove(string, bool);
+    callback server-add(string);
+
+    // Frame (navigation and search)
+    in property <string> user-name;
+    in property <NavTarget> nav-target: NavTarget.home;
+    in-out property <string> search-text;
+    in property <bool> can-go-back;
+    callback go-back();
+    callback go-home();
+    callback go-libraries();
+    callback go-downloads();
+    callback go-settings();
+    callback search-edited(string);
+    callback search-accepted(string);
+    // A card was pressed: the item's id and Jellyfin type.
+    callback activate(string, string, string);
+
+    // Home
+    in property <[SectionData]> sections;
+    in property <[SpotlightData]> spotlights;
+    in-out property <int> spot-index;
+    in-out property <int> spot-step;
+    in property <bool> home-loading;
+    in property <bool> spotlight-loading;
+    in property <string> home-error;
+    in property <bool> home-empty;
+    callback home-play(string);
+    callback home-favorite(string);
+    callback home-retry();
+    callback open-title(string);
+
+    // Settings
+    in property <SettingsData> settings-data;
+    in property <[string]> audio-languages;
+    in property <[string]> subtitle-languages;
+    callback setting-changed(string, int);
+    in-out property <string> download-location;
+    callback location-submitted(string);
+    // The server's version, for About.
+    in property <string> server-version;
+
+    // Downloads
+    in property <[DownloadData]> downloads-active;
+    in property <[DownloadData]> downloads-ready;
+    in property <StorageData> downloads-storage;
+    in property <bool> downloads-loading;
+    in property <int> downloads-ready-count;
+    callback download-play(string);
+    callback download-pause(string);
+    callback download-resume(string);
+    callback download-remove(string);
+    callback download-quality(string, int);
+    callback open-person(string, string);
+    callback title-download();
+    callback title-download-season();
+    callback title-download-all();
+    callback download-toggle-group(string);
+
+    // The "Collections" dialog on a title page.
+    in-out property <bool> collections-open;
+    in property <string> collections-heading;
+    in property <bool> collections-loading;
+    in property <string> collections-error;
+    in property <[CollectionChoiceData]> collections-rows;
+    callback title-edit-collections();
+    callback collections-toggle(string, bool);
+    callback collections-create(string);
+    callback collections-closed();
+    callback collection-remove(string);
+
+    // Library, the list of libraries, or a collection
+    in property <string> lib-heading;
+    in property <bool> lib-has-intro;
+    in property <string> lib-intro-initial;
+    in property <image> lib-intro-image;
+    in property <bool> lib-intro-has-image;
+    in property <string> lib-intro-lines;
+    in property <string> lib-intro-text;
+    in property <[CardData]> lib-cards;
+    in property <int> lib-total;
+    in property <bool> lib-wide;
+    in property <bool> lib-loading;
+    in property <bool> lib-sortable;
+    in property <int> lib-sort-index;
+    in property <bool> lib-downloaded;
+    // A music library: albums, artists or songs.
+    in property <bool> lib-music;
+    in property <int> lib-music-kind;
+    callback lib-music-kind-chosen(int);
+    in property <int> lib-page;
+    in property <int> lib-pages;
+    in property <[PagerItem]> lib-pager;
+    in property <string> lib-error;
+    in property <string> lib-error-title;
+    in property <string> lib-empty-title;
+    in property <string> lib-empty-text;
+    in property <string> lib-eyebrow;
+    callback lib-sort-chosen(int);
+    callback lib-toggle-downloaded();
+    callback lib-page-chosen(int);
+    callback lib-retry();
+
+    // Search results
+    in property <string> search-query;
+    in property <[CardData]> search-cards;
+    in property <[CardData]> search-music-cards;
+    in property <bool> search-loading;
+    in property <string> search-error;
+    in property <string> search-eyebrow;
+    callback search-retry();
+    callback search-clear();
+    // The search box's suggestions
+    in property <[SuggestionData]> suggestions;
+    in property <string> suggest-status;
+    in property <int> suggest-active;
+    in property <bool> suggest-open;
+    in property <string> suggest-query;
+    callback suggest-down();
+    callback suggest-up();
+    callback suggest-escape();
+    callback suggest-pick(int);
+    callback suggest-see-all();
+
+    // A title's page
+    in property <TitleData> title-data;
+    in property <image> title-backdrop;
+    in property <bool> title-has-backdrop;
+    in property <image> title-logo;
+    in property <bool> title-has-logo;
+    in property <[SeasonData]> title-seasons;
+    in property <string> title-selected-season;
+    in property <[EpisodeData]> title-episodes;
+    in property <bool> title-episodes-loading;
+    in property <bool> title-loading;
+    in property <string> title-load-error;
+    in property <string> title-action-error;
+    in property <string> title-action-note;
+    // A trailer is being looked for: pressing Trailer again does nothing.
+    in-out property <bool> title-trailer-busy;
+    in property <int> title-season-index;
+    in property <[string]> title-season-names;
+    in property <string> title-season-count;
+    in property <bool> title-season-watched;
+    in property <bool> title-season-listed;
+    in property <string> title-prev-season;
+    in property <string> title-next-season;
+    in property <bool> title-newest-first;
+    in property <string> title-episodes-error;
+    in property <string> title-episode-error;
+    in property <[CollectionRow]> title-collections;
+    in property <[CardData]> title-collection-cards;
+    in property <bool> title-collection-loading;
+    in-out property <bool> title-expanded;
+    in property <[PersonData]> title-cast;
+    in property <[CardData]> title-similar;
+    callback title-play(string);
+    callback title-toggle-favorite();
+    callback title-toggle-played();
+    callback title-season-chosen(string);
+    callback title-trailer();
+    callback title-retry();
+    callback title-toggle-sort();
+    callback title-toggle-season-played();
+    callback title-episode-menu(string, string);
+    callback open-collection(string, string);
+
+    // Watch
+    in property <string> watch-title;
+    in property <string> watch-subtitle;
+    in property <string> time-text;
+    in property <float> position;
+    in property <float> duration;
+    in property <float> cache-end;
+    in property <float> volume: 100;
+    in property <bool> paused;
+    in property <bool> buffering;
+    in property <bool> started;
+    in property <bool> muted;
+    in property <bool> controls-visible: true;
+    in property <[TrackData]> audio-tracks;
+    in property <[TrackData]> subtitle-tracks;
+    in property <float> speed: 1;
+    in property <string> quality: "original";
+    in property <[float]> chapters;
+    in property <string> skip-label;
+    in property <string> up-next-title;
+    in property <string> up-next-subtitle;
+    in-out property <bool> menu-open;
+    in-out property <string> menu-tab: "audio";
+    callback set-audio(int);
+    callback set-subtitle(int);
+    callback set-speed(float);
+    callback set-quality(string);
+    callback skip();
+    callback play-next();
+    callback cancel-up-next();
+    callback jump-chapter(int);
+    callback back();
+    callback toggle-pause();
+    callback seek-by(float);
+    callback seek-to(float);
+    callback set-volume(float);
+    callback toggle-mute();
+    callback activity();
+
+    // The player's keys, for a window showing one: they work wherever focus is (the picture, the
+    // details, the list), except while a text field is being typed in. True when the key was taken.
+    function watch-key(event: KeyEvent) -> bool {
+        root.activity();
+        if (event.text == " " || event.text == "k") {
+            root.toggle-pause();
+        } else if (event.text == Key.LeftArrow || event.text == "j") {
+            root.seek-by(-10);
+        } else if (event.text == Key.RightArrow || event.text == "l") {
+            root.seek-by(10);
+        } else if (event.text == Key.UpArrow) {
+            root.set-volume(min(100.0, root.volume + 5));
+        } else if (event.text == Key.DownArrow) {
+            root.set-volume(max(0.0, root.volume - 5));
+        } else if (event.text == "[") {
+            root.jump-chapter(-1);
+        } else if (event.text == "]") {
+            root.jump-chapter(1);
+        } else if (event.text == "<") {
+            root.set-speed(max(0.25, root.speed - 0.25));
+        } else if (event.text == ">") {
+            root.set-speed(min(4.0, root.speed + 0.25));
+        } else if (event.text == "s" && root.skip-label != "") {
+            root.skip();
+        } else if (event.text == "N" && Player.has-next) {
+            root.play-next();
+        } else if (event.text == Key.Home) {
+            root.seek-to(0.0);
+        } else if (event.text >= "0" && event.text <= "9") {
+            // 0 to 9 jump to that tenth of the file.
+            root.seek-to(event.text.to-float() / 10);
+        } else if (event.text == "m") {
+            root.toggle-mute();
+        } else if (event.text == "c") {
+            Player.toggle-subtitles();
+        } else if (event.text == "i") {
+            Player.stats-visible = !Player.stats-visible;
+        } else if (event.text == "t") {
+            if (Player.mode != "fullscreen") {
+                Player.set-mode(Player.mode == "theater" ? "default" : "theater");
+            }
+        } else if (event.text == "f") {
+            Player.set-mode(Player.mode == "fullscreen" ? "default" : "fullscreen");
+        } else if (event.text == Key.Escape) {
+            // Menu, then the countdown, then full screen, then theater.
+            if (root.menu-open) {
+                root.menu-open = false;
+            } else if (Player.up-next-kind != "") {
+                root.cancel-up-next();
+            } else if (Player.mode == "fullscreen" || Player.mode == "theater") {
+                Player.set-mode("default");
+            } else {
+                root.back();
+            }
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    // Typing in a text field ended while watching: the keyboard goes back to the player.
+    property <bool> typing: Typing.active;
+    changed typing => {
+        if (!root.typing && root.screen == Screen.watch) {
+            root-keys.focus();
+        }
+    }
+
+    root-keys := FocusScope {
+    init => {
+        self.focus();
+    }
+    capture-key-pressed(event) => {
+        // Signed out, there is nothing to jump to.
+        if (root.screen == Screen.loading || root.screen == Screen.sign-in) {
+            return reject;
+        }
+        if (event.modifiers.control && event.text == "k") {
+            root.palette-open = !root.palette-open;
+            if (root.palette-open) {
+                root.shortcuts-open = false;
+                root.palette-opened();
+            } else {
+                root-keys.focus();
+            }
+            return accept;
+        }
+        if (root.palette-open) {
+            return reject;
+        }
+        if (root.collections-open) {
+            if (event.text == Key.Escape) {
+                root.collections-open = false;
+                root.collections-closed();
+                root-keys.focus();
+                return accept;
+            }
+            return reject;
+        }
+        if (root.shortcuts-open) {
+            if (event.text == Key.Escape || event.text == "?") {
+                root.shortcuts-open = false;
+                root-keys.focus();
+            }
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "+" || event.text == "=")) {
+            root.zoom-step(1);
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "-" || event.text == "_")) {
+            root.zoom-step(-1);
+            return accept;
+        }
+        if (event.modifiers.control && event.text == "0") {
+            root.zoom-step(0);
+            return accept;
+        }
+        if (Typing.active || event.modifiers.control || (event.modifiers.alt && event.text != Key.LeftArrow)) {
+            return reject;
+        }
+        if (root.screen == Screen.watch && root.watch-key(event)) {
+            return accept;
+        }
+        if (event.text == " " && Music.active && root.screen != Screen.watch) {
+            Music.toggle();
+            return accept;
+        }
+        if (event.text == "?") {
+            root.shortcuts-open = true;
+            return accept;
+        }
+        if (event.modifiers.alt && event.text == Key.LeftArrow && root.screen != Screen.watch) {
+            root.go-back();
+            return accept;
+        }
+        if (event.text == "/" && root.screen != Screen.watch) {
+            root.search-focus-tick += 1;
+            return accept;
+        }
+        return reject;
+    }
+    if root.screen == Screen.loading: Rectangle {
+        Text {
+            text: "Bloom";
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 22px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    if root.screen == Screen.sign-in: SignIn {
+        wall: root.wall;
+        notice: root.signin-notice;
+        server-step: root.server-step;
+        busy: root.busy;
+        error: root.error;
+        server-name: root.server-name;
+        address <=> root.address;
+        username <=> root.username;
+        password <=> root.password;
+        remember <=> root.remember;
+        server-detail: root.server-detail;
+        saved: root.saved-accounts;
+        nearby: root.nearby;
+        nearby-note: root.nearby-note;
+        looking: root.looking;
+        users: root.public-users;
+        qc-available: root.qc-available;
+        qc-code: root.qc-code;
+        qc-error: root.qc-error;
+        can-cancel: root.can-cancel-sign-in;
+        resume(s, u) => {
+            root.resume-account(s, u);
+        }
+        forget(s, u) => {
+            root.forget-account(s, u);
+        }
+        connect-to(address) => {
+            root.connect-to(address);
+        }
+        search-again => {
+            root.search-again();
+        }
+        new-code => {
+            root.new-code();
+        }
+        cancel => {
+            root.cancel-sign-in();
+        }
+        check-server(a) => {
+            root.check-server(a);
+        }
+        sign-in(u, p) => {
+            root.sign-in(u, p);
+        }
+        change-server => {
+            root.change-server();
+        }
+    }
+    if root.screen == Screen.home || root.screen == Screen.library || root.screen == Screen.search || root.screen == Screen.title || root.screen == Screen.settings || root.screen == Screen.downloads || root.screen == Screen.servers || root.screen == Screen.music || root.screen == Screen.watch: Frame {
+        clear: root.screen == Screen.watch;
+        bare: root.screen == Screen.watch && Player.mode == "fullscreen";
+        active: root.nav-target;
+        user-name: root.user-name;
+        initial: root.user-initial;
+        user-image: root.user-image;
+        has-user-image: root.has-user-image;
+        server-name: root.server-name;
+        server-line: root.server-line;
+        other-servers: root.other-servers;
+        rail-collapsed <=> root.rail-collapsed;
+        downloading: root.downloading;
+        has-downloads: root.has-downloads;
+        offline: root.offline;
+        notice: root.notice;
+        server-menu-opened => {
+            root.server-menu-opened();
+        }
+        open-server(id) => {
+            root.open-server(id);
+        }
+        shortcuts => {
+            root.shortcuts-open = true;
+        }
+        browse-downloads => {
+            root.go-downloads();
+        }
+        retry-server => {
+            root.retry-server();
+        }
+        dismiss-notice => {
+            root.notice = "";
+        }
+        search-text <=> root.search-text;
+        can-go-back: root.can-go-back;
+        go-back => {
+            root.go-back();
+        }
+        go-home => {
+            root.go-home();
+        }
+        go-libraries => {
+            root.go-libraries();
+        }
+        go-downloads => {
+            root.go-downloads();
+        }
+        go-settings => {
+            root.go-settings();
+        }
+        search-edited(t) => {
+            root.search-edited(t);
+        }
+        search-accepted(t) => {
+            root.search-accepted(t);
+        }
+        suggestions: root.suggestions;
+        suggest-status: root.suggest-status;
+        suggest-active: root.suggest-active;
+        suggest-open: root.suggest-open;
+        suggest-query: root.suggest-query;
+        search-focus-tick: root.search-focus-tick;
+        suggest-down => {
+            root.suggest-down();
+        }
+        suggest-up => {
+            root.suggest-up();
+        }
+        suggest-escape => {
+            root.suggest-escape();
+            // Leaving the search field (Esc, or pressing away from it) hands the keyboard back.
+            root-keys.focus();
+        }
+        suggest-pick(i) => {
+            root.suggest-pick(i);
+        }
+        suggest-see-all => {
+            root.suggest-see-all();
+        }
+        other-accounts: root.other-accounts;
+        account-menu-opened => {
+            root.account-menu-opened();
+        }
+        switch-account(s, u) => {
+            root.switch-account(s, u);
+        }
+        add-account => {
+            root.add-account();
+        }
+        go-servers => {
+            root.go-servers();
+        }
+        sign-out => {
+            root.sign-out();
+        }
+
+        if root.screen == Screen.watch: WatchScreen {
+            title: root.watch-title;
+            subtitle: root.watch-subtitle;
+            time-text: root.time-text;
+            position: root.position;
+            duration: root.duration;
+            cache-end: root.cache-end;
+            volume: root.volume;
+            paused: root.paused;
+            buffering: root.buffering;
+            started: root.started;
+            muted: root.muted;
+            controls-visible: root.controls-visible;
+            audio-tracks: root.audio-tracks;
+            subtitle-tracks: root.subtitle-tracks;
+            speed: root.speed;
+            quality: root.quality;
+            chapters: root.chapters;
+            skip-label: root.skip-label;
+            window-width: root.width;
+            window-height: root.height;
+            up-next-title: root.up-next-title;
+            up-next-subtitle: root.up-next-subtitle;
+            menu-open <=> root.menu-open;
+            menu-tab <=> root.menu-tab;
+            set-audio(id) => {
+                root.set-audio(id);
+            }
+            set-subtitle(id) => {
+                root.set-subtitle(id);
+            }
+            set-speed(s) => {
+                root.set-speed(s);
+            }
+            set-quality(q) => {
+                root.set-quality(q);
+            }
+            skip => {
+                root.skip();
+            }
+            play-next => {
+                root.play-next();
+            }
+            cancel-up-next => {
+                root.cancel-up-next();
+            }
+            jump-chapter(d) => {
+                root.jump-chapter(d);
+            }
+            back => {
+                root.back();
+            }
+            toggle-pause => {
+                root.toggle-pause();
+            }
+            seek-by(s) => {
+                root.seek-by(s);
+            }
+            seek-to(f) => {
+                root.seek-to(f);
+            }
+            set-volume(v) => {
+                root.set-volume(v);
+            }
+            toggle-mute => {
+                root.toggle-mute();
+            }
+            activity => {
+                root.activity();
+            }
+        }
+        if root.screen == Screen.home: HomeScreen {
+            sections: root.sections;
+            spotlights: root.spotlights;
+            spot-index <=> root.spot-index;
+            spot-step <=> root.spot-step;
+            loading: root.home-loading;
+            spotlight-loading: root.spotlight-loading;
+            error: root.home-error;
+            empty: root.home-empty;
+            play(id) => {
+                root.home-play(id);
+            }
+            favorite(id) => {
+                root.home-favorite(id);
+            }
+            retry => {
+                root.home-retry();
+            }
+            activate(id, kind, name) => {
+                root.activate(id, kind, name);
+            }
+            open-title(id) => {
+                root.open-title(id);
+            }
+        }
+        if root.screen == Screen.library: LibraryScreen {
+            heading: root.lib-heading;
+            cards: root.lib-cards;
+            total: root.lib-total;
+            wide: root.lib-wide;
+            loading: root.lib-loading;
+            sortable: root.lib-sortable;
+            sort-index: root.lib-sort-index;
+            downloaded: root.lib-downloaded;
+            music: root.lib-music;
+            music-kind: root.lib-music-kind;
+            page: root.lib-page;
+            pages: root.lib-pages;
+            pager: root.lib-pager;
+            error: root.lib-error;
+            error-title: root.lib-error-title;
+            empty-title: root.lib-empty-title;
+            empty-text: root.lib-empty-text;
+            eyebrow: root.lib-eyebrow;
+            has-intro: root.lib-has-intro;
+            intro-initial: root.lib-intro-initial;
+            intro-image: root.lib-intro-image;
+            intro-has-image: root.lib-intro-has-image;
+            intro-lines: root.lib-intro-lines;
+            intro-text: root.lib-intro-text;
+            activate(id, kind, name) => {
+                root.activate(id, kind, name);
+            }
+            sort-chosen(s) => {
+                root.lib-sort-chosen(s);
+            }
+            music-kind-chosen(k) => {
+                root.lib-music-kind-chosen(k);
+            }
+            toggle-downloaded => {
+                root.lib-toggle-downloaded();
+            }
+            page-chosen(p) => {
+                root.lib-page-chosen(p);
+            }
+            retry => {
+                root.lib-retry();
+            }
+        }
+        if root.screen == Screen.music: MusicScreen {
+            paused: root.paused;
+            activate(id, kind, name) => {
+                root.activate(id, kind, name);
+            }
+        }
+        if root.screen == Screen.search: SearchScreen {
+            query: root.search-query;
+            cards: root.search-cards;
+            music-cards: root.search-music-cards;
+            loading: root.search-loading;
+            error: root.search-error;
+            eyebrow: root.search-eyebrow;
+            retry => {
+                root.search-retry();
+            }
+            clear => {
+                root.search-clear();
+            }
+            activate(id, kind, name) => {
+                root.activate(id, kind, name);
+            }
+        }
+        if root.screen == Screen.settings: SettingsScreen {
+            data: root.settings-data;
+            audio-languages: root.audio-languages;
+            subtitle-languages: root.subtitle-languages;
+            download-location <=> root.download-location;
+            changed(key, value) => {
+                root.setting-changed(key, value);
+            }
+            location-submitted(path) => {
+                root.location-submitted(path);
+            }
+            zoom(direction) => {
+                root.zoom-step(direction);
+            }
+        }
+        if root.screen == Screen.servers: ServersScreen {
+            servers: root.servers-data;
+            loading: root.servers-loading;
+            add-address <=> root.servers-add-address;
+            add-error: root.servers-add-error;
+            adding: root.servers-adding;
+            confirm-id: root.servers-confirm-id;
+            confirm-downloads: root.servers-confirm-downloads;
+            removing: root.servers-removing;
+            remove-error: root.servers-remove-error;
+            open(id) => {
+                root.server-open(id);
+            }
+            check(id) => {
+                root.server-check(id);
+            }
+            ask-remove(id) => {
+                root.server-ask-remove(id);
+            }
+            cancel-remove => {
+                root.server-cancel-remove();
+            }
+            remove(id, delete) => {
+                root.server-remove(id, delete);
+            }
+            add(address) => {
+                root.server-add(address);
+            }
+        }
+        if root.screen == Screen.downloads: DownloadsScreen {
+            active: root.downloads-active;
+            ready: root.downloads-ready;
+            ready-count: root.downloads-ready-count;
+            storage: root.downloads-storage;
+            offline: root.offline;
+            server-name: root.server-name;
+            loading: root.downloads-loading;
+            play(id) => {
+                root.download-play(id);
+            }
+            pause(id) => {
+                root.download-pause(id);
+            }
+            resume(id) => {
+                root.download-resume(id);
+            }
+            remove(id) => {
+                root.download-remove(id);
+            }
+            quality-picked(id, i) => {
+                root.download-quality(id, i);
+            }
+            toggle-group(group) => {
+                root.download-toggle-group(group);
+            }
+        }
+        if root.screen == Screen.title: TitleScreen {
+            data: root.title-data;
+            backdrop: root.title-backdrop;
+            has-backdrop: root.title-has-backdrop;
+            logo: root.title-logo;
+            has-logo: root.title-has-logo;
+            seasons: root.title-seasons;
+            selected-season: root.title-selected-season;
+            episodes: root.title-episodes;
+            episodes-loading: root.title-episodes-loading;
+            loading: root.title-loading;
+            load-error: root.title-load-error;
+            action-error: root.title-action-error;
+            action-note: root.title-action-note;
+            trailer-busy: root.title-trailer-busy;
+            season-index: root.title-season-index;
+            season-names: root.title-season-names;
+            season-count: root.title-season-count;
+            season-watched: root.title-season-watched;
+            season-listed: root.title-season-listed;
+            prev-season: root.title-prev-season;
+            next-season: root.title-next-season;
+            newest-first: root.title-newest-first;
+            episodes-error: root.title-episodes-error;
+            episode-error: root.title-episode-error;
+            collections: root.title-collections;
+            collection-cards: root.title-collection-cards;
+            collection-loading: root.title-collection-loading;
+            expanded <=> root.title-expanded;
+            cast: root.title-cast;
+            similar: root.title-similar;
+            play(id) => {
+                root.title-play(id);
+            }
+            toggle-favorite => {
+                root.title-toggle-favorite();
+            }
+            toggle-played => {
+                root.title-toggle-played();
+            }
+            season-chosen(id) => {
+                root.title-season-chosen(id);
+            }
+            play-episode(id) => {
+                root.title-play(id);
+            }
+            open-person(id, name) => {
+                root.open-person(id, name);
+            }
+            download-title => {
+                root.title-download();
+            }
+            download-season => {
+                root.title-download-season();
+            }
+            download-all => {
+                root.title-download-all();
+            }
+            edit-collections => {
+                root.title-edit-collections();
+            }
+            collection-remove(id) => {
+                root.collection-remove(id);
+            }
+            trailer => {
+                root.title-trailer();
+            }
+            retry => {
+                root.title-retry();
+            }
+            toggle-sort => {
+                root.title-toggle-sort();
+            }
+            toggle-season-played => {
+                root.title-toggle-season-played();
+            }
+            episode-menu(id, action) => {
+                root.title-episode-menu(id, action);
+            }
+            open-collection(id, name) => {
+                root.open-collection(id, name);
+            }
+            activate(id, kind, name) => {
+                root.activate(id, kind, name);
+            }
+        }
+    }
+
+    // The hover card sits above every page, and below the snackbar.
+    HoverCard { }
+
+    if root.palette-open: CommandPalette {
+        rows: root.palette-rows;
+        active: root.palette-active;
+        note: root.palette-note;
+        query <=> root.palette-query;
+        edited(t) => {
+            root.palette-edited(t);
+        }
+        choose(i) => {
+            root.palette-open = false;
+            root-keys.focus();
+            root.palette-accept(i);
+        }
+        move(d) => {
+            root.palette-move(d);
+        }
+        close => {
+            root.palette-open = false;
+            root-keys.focus();
+        }
+    }
+    // The song that is playing, over whichever page is open; the player screen has its own controls.
+    if Music.active && root.screen != Screen.watch && root.screen != Screen.loading && root.screen != Screen.sign-in: MiniPlayer {
+        x: max(120px, (parent.width - self.width) / 2);
+        y: parent.height - self.height - 16px;
+        width: min(640px, parent.width - 160px);
+        position: root.position;
+        duration: root.duration;
+        paused: root.paused;
+        open => {
+            Music.open-playing();
+        }
+    }
+    if root.collections-open: CollectionsDialog {
+        heading: root.collections-heading;
+        loading: root.collections-loading;
+        error: root.collections-error;
+        rows: root.collections-rows;
+        toggle(id, contains) => {
+            root.collections-toggle(id, contains);
+        }
+        create(name) => {
+            root.collections-create(name);
+        }
+        close => {
+            root.collections-open = false;
+            root.collections-closed();
+            root-keys.focus();
+        }
+    }
+    if root.shortcuts-open: ShortcutsOverlay {
+        close => {
+            root.shortcuts-open = false;
+            root-keys.focus();
+        }
+    }
+    if root.zoom-readout != "": Rectangle {
+        y: 76px;
+        x: (parent.width - self.width) / 2;
+        width: zoom-text.preferred-width + 32px;
+        height: 36px;
+        border-radius: 18px;
+        background: Theme.inverse-surface;
+        zoom-text := Text {
+            text: root.zoom-readout;
+            color: Theme.inverse-on-surface;
+            font-family: Theme.font;
+            font-size: 14px;
+            font-weight: 500;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    if root.message != "": Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height - 32px;
+        width: min(560px, parent.width - 48px);
+        height: msg.preferred-height + 28px;
+        border-radius: 4px;
+        background: Theme.inverse-surface;
+        msg := Text {
+            x: 16px;
+            width: parent.width - 32px;
+            text: root.message;
+            color: Theme.inverse-on-surface;
+            font-family: Theme.font;
+            font-size: 14px;
+            wrap: word-wrap;
+            vertical-alignment: center;
+        }
+    }
+
+    GrowOverlay {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    if root.launching: Launch {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        ending: root.launch-ending;
+        finished => {
+            root.launching = false;
+            root.launch-ending = false;
+        }
+    }
+    }
+}

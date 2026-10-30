@@ -1,0 +1,19 @@
+/* Rosé Pine Moon for Bloom.
+   Palette: Rosé Pine, rosepinetheme.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #232136;
+  --surface: #2a273f;
+  --surface-2: #393552;
+  --raise: #393552;
+  --line: #44415a;
+  --line-soft: #393552;
+  --ink: #e0def4;
+  --ink-2: #a7a5bb;
+  --ink-3: #918fa4;
+  --accent: #c4a7e7;
+  --accent-ink: #232136;
+  --good: #9ccfd8;
+  --alert: #eb6f92;
+}

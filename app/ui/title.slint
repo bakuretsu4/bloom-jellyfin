@@ -1,0 +1,1064 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Music } from "music.slint";
+import { Grow } from "cards.slint";
+import { Surface, M3Button, M3IconButton, M3Chip, MenuRow, MetaLine, MetaPart, SelectField, ButtonKind, Page } from "m3.slint";
+import { CardData, CardRail, CardGrid } from "cards.slint";
+
+// A label and its value in a list of facts ("Audio", "Japanese, English").
+export struct FactData {
+    label: string,
+    value: string,
+}
+
+export struct TitleData {
+    id: string,
+    title: string,
+    // "2019-", "3 seasons", "1h 52m", "7.1/10": parted by hairlines.
+    meta: [MetaPart],
+    // The age rating, in a bordered tag.
+    rating: string,
+    // "Crime, Drama, Mystery"
+    genres: string,
+    tagline: string,
+    overview: string,
+    studio: string,
+    // "Still airing"
+    status: string,
+    // Audio, Subtitles and Age rating, beside the synopsis.
+    facts: [FactData],
+    // Container, video, audio, subtitles, size, bitrate, studio.
+    media: [FactData],
+    // What Play starts: "Play", "Resume", "Resume S1 E3", ...
+    play-label: string,
+    play-id: string,
+    has-play: bool,
+    favorite: bool,
+    played: bool,
+    is-series: bool,
+    is-collection: bool,
+    // A film can be marked watched and downloaded from its page; a show a season at a time.
+    is-film: bool,
+    has-trailer: bool,
+    // "Download", "Downloading 43%", "Queued", "Download paused", "Download failed", "Downloaded".
+    download-label: string,
+    download-status: string,
+}
+
+export struct SeasonData {
+    id: string,
+    name: string,
+}
+
+export struct EpisodeData {
+    id: string,
+    // "E4"
+    number: string,
+    title: string,
+    // The show's name, above the title.
+    series: string,
+    // "24m"
+    runtime: string,
+    // "Up next" or "Continue" on the episode Play would start.
+    badge: string,
+    // Audio languages, "Subtitles", "Watched", "Downloaded".
+    foot: [MetaPart],
+    image: image,
+    has-image: bool,
+    // 0..1 when partly watched, else 0.
+    progress: float,
+    played: bool,
+    // "", or its download's status; and how far along it is.
+    download-status: string,
+    download-progress: float,
+    // "Download episode", "Cancel download" or "Delete download".
+    download-action: string,
+}
+
+export struct PersonData {
+    id: string,
+    name: string,
+    role: string,
+    // The name's first letter, shown until (or instead of) a photo.
+    initial: string,
+    image: image,
+    has-image: bool,
+}
+
+// A collection the title is part of, with its titles.
+export struct CollectionRow {
+    id: string,
+    title: string,
+    cards: [CardData],
+}
+
+component SectionTitle inherits Text {
+    color: Theme.on-surface;
+    font-family: Theme.font;
+    font-size: 22px;
+}
+
+component Eyebrow inherits Text {
+    color: Theme.on-surface-variant;
+    font-family: Theme.font;
+    font-size: 14px;
+    vertical-alignment: center;
+}
+
+// One episode: its still, what it is, and a menu of what can be done to it.
+component EpisodeTile inherits Rectangle {
+    in property <EpisodeData> data;
+    callback play();
+    callback menu-action(string);
+
+    VerticalLayout {
+        spacing: 4px;
+        alignment: start;
+        still := Surface {
+            height: root.width * 9 / 16;
+            border-radius: 16px;
+            background: Theme.surface-container-high;
+            clicked => {
+                root.play();
+            }
+            Text {
+                width: parent.width - 24px;
+                x: 12px;
+                height: parent.height;
+                text: root.data.title;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                wrap: word-wrap;
+            }
+            if root.data.has-image: Image {
+                source: root.data.image;
+                width: parent.width;
+                height: parent.height;
+                image-fit: cover;
+            }
+            // Appears on hover, as a round primary-container disc.
+            Rectangle {
+                width: 56px;
+                height: 56px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                border-radius: 28px;
+                background: Theme.primary-container;
+                opacity: still.has-hover ? 1.0 : 0.0;
+                animate opacity { duration: Theme.reduce-motion ? 0ms : 150ms; }
+                Image {
+                    source: @image-url("../assets/icons/play_arrow.svg");
+                    colorize: Theme.on-primary-container;
+                    width: 28px;
+                    height: 28px;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+            if root.data.badge != "": Rectangle {
+                x: 8px;
+                y: 8px;
+                width: badge-text.preferred-width + 16px;
+                height: 24px;
+                border-radius: 6px;
+                background: Theme.primary;
+                badge-text := Text {
+                    text: root.data.badge;
+                    color: Theme.on-primary;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    font-weight: 500;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if root.data.runtime != "": Rectangle {
+                x: parent.width - self.width - 8px;
+                y: parent.height - self.height - 10px;
+                width: runtime-text.preferred-width + 14px;
+                height: 22px;
+                border-radius: 6px;
+                background: Theme.surface.with-alpha(0.82);
+                runtime-text := Text {
+                    text: root.data.runtime;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if root.data.progress > 0: Rectangle {
+                y: parent.height - 4px;
+                height: 4px;
+                background: Theme.surface-container-highest;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * root.data.progress;
+                    background: Theme.primary;
+                }
+            }
+        }
+        Text {
+            height: 16px;
+            text: root.data.series;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 11.5px;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            height: 22px;
+            spacing: 6px;
+            if root.data.number != "": Text {
+                text: root.data.number;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+            Text {
+                text: root.data.title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 500;
+                horizontal-alignment: left;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                overflow: elide;
+            }
+        }
+        HorizontalLayout {
+            height: 32px;
+            spacing: 4px;
+            MetaLine {
+                parts: root.data.foot;
+                font-size: 12.5px;
+                horizontal-stretch: 1;
+            }
+            // A download's own progress, where its button would be.
+            if root.data.download-status == "downloading" || root.data.download-status == "queued": Text {
+                text: root.data.download-status == "queued" ? "Queued" : round(root.data.download-progress * 100) + "%";
+                color: Theme.primary;
+                font-family: Theme.font;
+                font-size: 12.5px;
+                font-weight: 500;
+                vertical-alignment: center;
+            }
+            Rectangle {
+                width: 32px;
+                M3IconButton {
+                    icon: @image-url("../assets/icons/more_vert.svg");
+                    width: 32px;
+                    height: 32px;
+                    clicked => {
+                        menu.show();
+                    }
+                }
+                menu := PopupWindow {
+                    x: parent.width - 196px;
+                    y: parent.height;
+                    width: 196px;
+                    height: 2 * 48px + 16px;
+                    Rectangle {
+                        border-radius: 12px;
+                        background: Theme.surface-container-high;
+                        VerticalLayout {
+                            padding: 8px;
+                            MenuRow {
+                                height: 48px;
+                                label: root.data.played ? "Mark as unwatched" : "Mark as watched";
+                                clicked => {
+                                    menu.close();
+                                    root.menu-action("played");
+                                }
+                            }
+                            MenuRow {
+                                height: 48px;
+                                label: root.data.download-action;
+                                clicked => {
+                                    menu.close();
+                                    root.menu-action("download");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Episodes in a grid of tiles at least 240 px wide.
+component EpisodeGrid inherits Rectangle {
+    in property <[EpisodeData]> episodes;
+    callback play(string);
+    callback menu-action(string, string);
+    property <int> columns: max(1, Math.floor((root.width + 16px) / (240px + 16px)));
+    property <length> tile-width: (root.width - (root.columns - 1) * 16px) / root.columns;
+    property <length> tile-height: root.tile-width * 9 / 16 + 4px + 16px + 4px + 22px + 4px + 32px;
+    height: Math.ceil(root.episodes.length / root.columns) * (root.tile-height + 22px);
+    for episode[i] in root.episodes: EpisodeTile {
+        x: mod(i, root.columns) * (root.tile-width + 16px);
+        y: Math.floor(i / root.columns) * (root.tile-height + 22px);
+        width: root.tile-width;
+        height: root.tile-height;
+        data: episode;
+        play => {
+            root.play(episode.id);
+        }
+        menu-action(action) => {
+            root.menu-action(episode.id, action);
+        }
+    }
+}
+
+// Facts in columns, as many to a row as fit.
+export component FactGrid inherits Rectangle {
+    in property <[FactData]> facts;
+    property <int> columns: max(1, Math.floor((root.width + 20px) / (220px + 20px)));
+    property <length> item-width: (root.width - (root.columns - 1) * 20px) / root.columns;
+    height: Math.ceil(root.facts.length / root.columns) * 52px;
+    for fact[i] in root.facts: VerticalLayout {
+        x: mod(i, root.columns) * (root.item-width + 20px);
+        y: Math.floor(i / root.columns) * 52px;
+        width: root.item-width;
+        height: 48px;
+        spacing: 3px;
+        alignment: start;
+        Text {
+            text: fact.label;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 11.5px;
+        }
+        Text {
+            text: fact.value;
+            color: Theme.on-surface;
+            font-family: Theme.font;
+            font-size: 13px;
+            overflow: elide;
+        }
+    }
+}
+
+export component PersonCard inherits Rectangle {
+    in property <PersonData> data;
+    callback clicked();
+    width: 104px;
+    height: 148px;
+    Rectangle {
+        y: 0;
+        x: 8px;
+        width: 88px;
+        height: 88px;
+        border-radius: 44px;
+        clip: true;
+        background: Theme.surface-container-highest;
+        Text {
+            text: root.data.initial;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 28px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        if root.data.has-image: Image {
+            source: root.data.image;
+            width: parent.width;
+            height: parent.height;
+            image-fit: cover;
+        }
+    }
+    Text {
+        y: 96px;
+        width: parent.width;
+        text: root.data.name;
+        color: Theme.on-surface;
+        font-family: Theme.font;
+        font-size: 13px;
+        font-weight: 500;
+        horizontal-alignment: center;
+        overflow: elide;
+    }
+    Text {
+        y: 114px;
+        width: parent.width;
+        text: root.data.role;
+        color: Theme.on-surface-variant;
+        font-family: Theme.font;
+        font-size: 12px;
+        horizontal-alignment: center;
+        overflow: elide;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component TitleScreen inherits Page {
+    in property <TitleData> data;
+    // The page is still being fetched, or couldn't be.
+    in property <bool> loading;
+    in property <string> load-error;
+    in property <image> backdrop;
+    in property <bool> has-backdrop;
+    // The backdrop arrived while the card's picture was still growing here: it crossfades in.
+    changed has-backdrop => {
+        if (Grow.state > 0 && root.has-backdrop) {
+            Grow.target = root.backdrop;
+            Grow.has-target = true;
+        }
+    }
+    in property <image> logo;
+    in property <bool> has-logo;
+    // Trailer, favourite and watched feedback under the buttons.
+    in property <string> action-error;
+    in property <string> action-note;
+    in property <bool> trailer-busy;
+    in property <[SeasonData]> seasons;
+    in property <string> selected-season;
+    in property <int> season-index;
+    // The seasons' names, for the list shown when there are many.
+    in property <[string]> season-names;
+    // "N episodes, X unwatched"
+    in property <string> season-count;
+    in property <bool> season-watched;
+    in property <bool> season-listed;
+    in property <string> prev-season;
+    in property <string> next-season;
+    in property <bool> newest-first;
+    in property <[EpisodeData]> episodes;
+    in property <bool> episodes-loading;
+    in property <string> episodes-error;
+    in property <string> episode-error;
+    in property <[PersonData]> cast;
+    in property <[CollectionRow]> collections;
+    // A collection's own titles, oldest first.
+    in property <[CardData]> collection-cards;
+    in property <bool> collection-loading;
+    in property <[CardData]> similar;
+    in-out property <bool> expanded;
+    // The synopsis is more than the clamp (eight lines, 150 px) holds: about width / 7 characters to a line at
+    // 14.5 px. Judged from the text, since asking the laid-out text would loop.
+    property <bool> synopsis-long: root.data.overview.character-count > 8 * ((root.panel-width - 64px) / 7px);
+    // The hero's panel with the words: about half of it, never narrower than the buttons need.
+    property <length> panel-width: min(680px, max(500px, (root.width - 48px) * 0.5));
+    callback play(string);
+    callback trailer();
+    callback toggle-favorite();
+    callback toggle-played();
+    callback retry();
+    callback season-chosen(string);
+    callback toggle-sort();
+    callback toggle-season-played();
+    callback play-episode(string);
+    callback episode-menu(string, string);
+    callback open-person(string, string);
+    callback open-collection(string, string);
+    callback download-title();
+    callback download-all();
+    // Open the dialog that adds this title to collections.
+    callback edit-collections();
+    // Take a title out of the collection this page is about.
+    callback collection-remove(string);
+    in-out property <bool> editing-collection;
+    callback download-season();
+    callback activate(string, string, string);
+
+    Flickable {
+        content-height: page.preferred-height + 48px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        page := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 28px;
+            alignment: start;
+
+            // ---- loading and failure
+            if root.loading && root.load-error == "": Rectangle {
+                height: 440px;
+                border-radius: 28px;
+                background: Theme.surface-container;
+            }
+            if root.load-error != "": VerticalLayout {
+                padding-top: 48px;
+                spacing: 12px;
+                Text {
+                    text: "Couldn't load this";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 24px;
+                }
+                Text {
+                    text: root.load-error;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    M3Button {
+                        text: "Try again";
+                        kind: ButtonKind.tonal;
+                        clicked => {
+                            root.retry();
+                        }
+                    }
+                }
+            }
+
+            // ---- hero: the words on a panel at the left, the artwork at the right fading into it
+            if !root.loading: hero := Rectangle {
+                height: max(440px, hero-col.preferred-height + 88px);
+                border-radius: 28px;
+                clip: true;
+                background: Theme.surface-container;
+                // The card's picture is carried here once the backdrop it fades into has arrived; a
+                // title with none (or a slow one) has the picture fade where it is instead.
+                Timer {
+                    interval: 70ms;
+                    running: Grow.state == 1 && root.has-backdrop;
+                    triggered => {
+                        Grow.target = root.backdrop;
+                        Grow.has-target = true;
+                        Grow.to-x = hero.absolute-position.x;
+                        Grow.to-y = hero.absolute-position.y;
+                        Grow.to-w = hero.width;
+                        Grow.to-h = hero.height;
+                        Grow.grew = true;
+                        Grow.state = 2;
+                    }
+                }
+                Timer {
+                    interval: 1200ms;
+                    running: Grow.state == 1;
+                    triggered => {
+                        Grow.state = 3;
+                    }
+                }
+                if root.has-backdrop: Image {
+                    // The artwork settles into the page: a touch large at first.
+                    property <bool> grown;
+                    init => {
+                        self.grown = true;
+                    }
+                    x: root.panel-width - 120px;
+                    y: 0;
+                    width: parent.width - self.x;
+                    height: parent.height;
+                    transform-scale: self.grown || Theme.reduce-motion ? 1.0 : 1.06;
+                    animate transform-scale { duration: 700ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+                    source: root.backdrop;
+                    image-fit: cover;
+                }
+                // A title with no artwork: a wash of the page's colour where it would be.
+                if !root.has-backdrop: Rectangle {
+                    x: root.panel-width - 120px;
+                    y: 0;
+                    width: parent.width - self.x;
+                    height: parent.height;
+                    background: @linear-gradient(120deg, Theme.surface-container 0%, Theme.primary-container.with-alpha(0.5) 100%);
+                }
+                // The panel's edge melts into the artwork.
+                if root.has-backdrop: Rectangle {
+                    x: root.panel-width - 120px;
+                    y: 0;
+                    width: 220px;
+                    height: parent.height;
+                    background: @linear-gradient(90deg, Theme.surface-container 0%, Theme.surface-container.with-alpha(0.7) 40%, Theme.surface-container.with-alpha(0.0) 100%);
+                }
+                hero-col := VerticalLayout {
+                    x: 0;
+                    y: 0;
+                    width: root.panel-width;
+                    padding-left: 40px;
+                    padding-right: 24px;
+                    padding-top: 40px;
+                    padding-bottom: 40px;
+                    spacing: 12px;
+                    alignment: center;
+                    if root.has-logo: Image {
+                        source: root.logo;
+                        height: 100px;
+                        width: root.panel-width - 80px;
+                        image-fit: contain;
+                        horizontal-alignment: left;
+                    }
+                    if !root.has-logo: Text {
+                        text: root.data.title;
+                        color: Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 44px;
+                        wrap: word-wrap;
+                    }
+                    MetaLine {
+                        parts: root.data.meta;
+                        tag: root.data.rating;
+                        ink: Theme.on-surface;
+                        font-size: 14px;
+                    }
+                    if root.data.genres != "": Text {
+                        text: root.data.genres;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        wrap: word-wrap;
+                    }
+                    if root.data.tagline != "": Text {
+                        text: root.data.tagline;
+                        color: Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        font-weight: 500;
+                        wrap: word-wrap;
+                    }
+                    if root.data.overview != "": VerticalLayout {
+                        spacing: 6px;
+                        Text {
+                            text: root.data.overview;
+                            color: Theme.on-surface;
+                            font-family: Theme.font;
+                            font-size: 14.5px;
+                            wrap: word-wrap;
+                            max-height: root.expanded || !root.synopsis-long ? 4000px : 150px;
+                            overflow: elide;
+                        }
+                        // Only when the synopsis is cut short: one that shows in full needs no button.
+                        if root.expanded || root.synopsis-long: HorizontalLayout {
+                            alignment: start;
+                            Surface {
+                                height: 28px;
+                                width: more-text.preferred-width + 16px;
+                                border-radius: 8px;
+                                tint: Theme.primary;
+                                clicked => {
+                                    root.expanded = !root.expanded;
+                                }
+                                more-text := Text {
+                                    text: root.expanded ? "Fewer details" : "More details";
+                                    color: Theme.primary;
+                                    font-family: Theme.font;
+                                    font-size: 14px;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                    // The main actions, then the rest, in two rows that always fit the panel.
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        if root.data.has-play: M3Button {
+                            text: root.data.play-label;
+                            icon: @image-url("../assets/icons/play_arrow.svg");
+                            clicked => {
+                                root.play(root.data.play-id);
+                            }
+                        }
+                        if root.data.has-trailer: M3Button {
+                            text: root.trailer-busy ? "Finding trailer" : "Trailer";
+                            kind: ButtonKind.tonal;
+                            icon: @image-url("../assets/icons/movie.svg");
+                            opacity: root.trailer-busy ? 0.6 : 1.0;
+                            clicked => {
+                                root.trailer();
+                            }
+                        }
+                        M3Button {
+                            text: root.data.favorite ? "Favorited" : "Favorite";
+                            kind: ButtonKind.tonal;
+                            selected: root.data.favorite;
+                            icon: root.data.favorite ? @image-url("../assets/icons/favorite-fill.svg") : @image-url("../assets/icons/favorite.svg");
+                            clicked => {
+                                root.toggle-favorite();
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        if root.data.is-film: M3Button {
+                            text: root.data.played ? "Watched" : "Mark watched";
+                            kind: ButtonKind.tonal;
+                            selected: root.data.played;
+                            icon: @image-url("../assets/icons/check.svg");
+                            clicked => {
+                                root.toggle-played();
+                            }
+                        }
+                        if root.data.is-film || root.data.is-series: M3Button {
+                            text: "Collections";
+                            kind: ButtonKind.tonal;
+                            icon: @image-url("../assets/icons/add.svg");
+                            clicked => {
+                                root.edit-collections();
+                            }
+                        }
+                        if root.data.is-series || root.data.is-collection: M3Button {
+                            text: root.data.is-series ? "Download show" : "Download all";
+                            kind: ButtonKind.tonal;
+                            icon: @image-url("../assets/icons/download.svg");
+                            clicked => {
+                                root.download-all();
+                            }
+                        }
+                        if root.data.is-film: M3Button {
+                            text: root.data.download-label;
+                            kind: ButtonKind.tonal;
+                            selected: root.data.download-status == "done";
+                            icon: root.data.download-status == "done" ? @image-url("../assets/icons/check.svg") : @image-url("../assets/icons/download.svg");
+                            clicked => {
+                                root.download-title();
+                            }
+                        }
+                    }
+                    if root.action-error != "": Text {
+                        text: root.action-error;
+                        color: Theme.error;
+                        font-family: Theme.font;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    if root.action-note != "": Text {
+                        text: root.action-note;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+
+            // ---- the facts that were beside the synopsis: a strip under the hero
+            if !root.loading && root.data.facts.length > 0: VerticalLayout {
+                spacing: 12px;
+                FactGrid {
+                    facts: root.data.facts;
+                }
+                Rectangle {
+                    height: 1px;
+                    background: Theme.outline-variant;
+                }
+            }
+
+            // ---- a collection's titles
+            if !root.loading && root.data.is-collection: VerticalLayout {
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    alignment: start;
+                    SectionTitle {
+                        text: "In this collection";
+                        vertical-alignment: center;
+                    }
+                    if root.collection-cards.length > 0: Eyebrow {
+                        text: root.collection-cards.length == 1 ? "1 title, oldest first" : root.collection-cards.length + " titles, oldest first";
+                    }
+                    if root.collection-cards.length > 0: M3Button {
+                        text: root.editing-collection ? "Done" : "Remove titles";
+                        kind: ButtonKind.outlined;
+                        clicked => {
+                            root.editing-collection = !root.editing-collection;
+                        }
+                    }
+                }
+                if root.editing-collection: VerticalLayout {
+                    spacing: 4px;
+                    for card in root.collection-cards: Rectangle {
+                        height: 44px;
+                        max-width: 640px;
+                        border-radius: 12px;
+                        background: Theme.surface-container-low;
+                        HorizontalLayout {
+                            padding-left: 16px;
+                            padding-right: 8px;
+                            spacing: 12px;
+                            Text {
+                                text: card.title;
+                                color: Theme.on-surface;
+                                font-family: Theme.font;
+                                font-size: 15px;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+                            M3IconButton {
+                                y: (parent.height - self.height) / 2;
+                                icon: @image-url("../assets/icons/close.svg");
+                                clicked => {
+                                    root.collection-remove(card.id);
+                                }
+                            }
+                        }
+                    }
+                }
+                if root.collection-loading: Eyebrow {
+                    text: "Loading\u{2026}";
+                }
+                CardGrid {
+                    cards: root.collection-cards;
+                    activate(id, kind, name) => {
+                        root.activate(id, kind, name);
+                    }
+                }
+            }
+
+            // ---- episodes
+            if !root.loading && root.data.is-series: VerticalLayout {
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: start;
+                    // The season picker: chips for a few seasons, a list for many, a heading for one.
+                    if root.seasons.length > 1 && root.seasons.length <= 8: HorizontalLayout {
+                        spacing: 8px;
+                        for season in root.seasons: M3Chip {
+                            text: season.name;
+                            selected: root.selected-season == season.id;
+                            clicked => {
+                                root.season-chosen(season.id);
+                            }
+                        }
+                    }
+                    if root.seasons.length > 8: SelectField {
+                        options: root.season-names;
+                        selected: root.season-index;
+                        picked(i) => {
+                            root.season-chosen(root.seasons[i].id);
+                        }
+                    }
+                    if root.seasons.length <= 1: SectionTitle {
+                        text: root.seasons.length == 1 ? root.seasons[0].name : "Episodes";
+                        vertical-alignment: center;
+                    }
+                    if root.season-count != "": Eyebrow {
+                        text: root.season-count;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    M3Button {
+                        text: root.newest-first ? "Oldest first" : "Newest first";
+                        kind: ButtonKind.text;
+                        icon: @image-url("../assets/icons/sort.svg");
+                        clicked => {
+                            root.toggle-sort();
+                        }
+                    }
+                    if root.selected-season != "": M3Button {
+                        text: root.season-watched ? "Mark season unwatched" : "Mark season watched";
+                        kind: ButtonKind.text;
+                        icon: @image-url("../assets/icons/check.svg");
+                        clicked => {
+                            root.toggle-season-played();
+                        }
+                    }
+                    if root.selected-season != "": M3Button {
+                        text: root.season-listed ? "Season in Downloads" : "Download season";
+                        kind: ButtonKind.text;
+                        icon: root.season-listed ? @image-url("../assets/icons/check.svg") : @image-url("../assets/icons/download.svg");
+                        clicked => {
+                            root.download-season();
+                        }
+                    }
+                }
+                if root.episode-error != "": Text {
+                    text: root.episode-error;
+                    color: Theme.error;
+                    font-family: Theme.font;
+                    font-size: 13px;
+                    wrap: word-wrap;
+                }
+                if root.episodes-error != "": VerticalLayout {
+                    spacing: 8px;
+                    SectionTitle {
+                        text: "Couldn't load the episodes";
+                    }
+                    Eyebrow {
+                        text: root.episodes-error;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        alignment: start;
+                        M3Button {
+                            text: "Try again";
+                            kind: ButtonKind.tonal;
+                            clicked => {
+                                root.season-chosen(root.selected-season);
+                            }
+                        }
+                    }
+                }
+                if root.episodes-loading && root.episodes.length == 0: HorizontalLayout {
+                    spacing: 16px;
+                    for i in 4: Rectangle {
+                        height: 135px;
+                        border-radius: 16px;
+                        background: Theme.surface-container;
+                    }
+                }
+                EpisodeGrid {
+                    episodes: root.episodes;
+                    opacity: root.episodes-loading ? 0.6 : 1.0;
+                    play(id) => {
+                        root.play-episode(id);
+                    }
+                    menu-action(id, action) => {
+                        root.episode-menu(id, action);
+                    }
+                }
+                // The neighbouring seasons.
+                if root.seasons.length > 1: HorizontalLayout {
+                    padding-top: 6px;
+                    if root.prev-season != "": M3Button {
+                        text: root.prev-season;
+                        kind: ButtonKind.outlined;
+                        icon: @image-url("../assets/icons/chevron_left.svg");
+                        clicked => {
+                            root.season-chosen(root.seasons[root.season-index - 1].id);
+                        }
+                    }
+                    Rectangle { }
+                    if root.next-season != "": M3Button {
+                        text: root.next-season;
+                        kind: ButtonKind.outlined;
+                        icon: @image-url("../assets/icons/chevron_right.svg");
+                        clicked => {
+                            root.season-chosen(root.seasons[root.season-index + 1].id);
+                        }
+                    }
+                }
+            }
+
+            if !root.loading && root.cast.length > 0: VerticalLayout {
+                spacing: 12px;
+                SectionTitle {
+                    text: "Cast";
+                }
+                Rectangle {
+                    height: 148px;
+                    cast-fl := Flickable {
+                        x: 0;
+                        y: 0;
+                        width: parent.width;
+                        height: parent.height;
+                        content-width: root.cast.length * 112px;
+                        animate content-x { duration: Theme.reduce-motion ? 0ms : 250ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+                        for person[i] in root.cast: PersonCard {
+                            x: i * 112px;
+                            data: person;
+                            clicked => {
+                                root.open-person(person.id, person.name);
+                            }
+                        }
+                    }
+                    // Back and forward, as the rows on Home have: a page is 85% of the list.
+                    if cast-fl.content-x < -1px: Rectangle {
+                        x: 4px;
+                        y: 24px;
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 20px;
+                        background: Theme.surface-container-high.with-alpha(0.92);
+                        Image {
+                            source: @image-url("../assets/icons/chevron_left.svg");
+                            colorize: Theme.on-surface;
+                            width: 24px;
+                            height: 24px;
+                            x: 8px;
+                            y: 8px;
+                        }
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                cast-fl.content-x = min(0px, cast-fl.content-x + cast-fl.width * 0.85);
+                            }
+                        }
+                    }
+                    if cast-fl.content-width > cast-fl.width && cast-fl.content-x > cast-fl.width - cast-fl.content-width + 1px: Rectangle {
+                        x: parent.width - 44px;
+                        y: 24px;
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 20px;
+                        background: Theme.surface-container-high.with-alpha(0.92);
+                        Image {
+                            source: @image-url("../assets/icons/chevron_right.svg");
+                            colorize: Theme.on-surface;
+                            width: 24px;
+                            height: 24px;
+                            x: 8px;
+                            y: 8px;
+                        }
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                cast-fl.content-x = max(cast-fl.width - cast-fl.content-width, cast-fl.content-x - cast-fl.width * 0.85);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !root.loading && root.data.media.length > 0: VerticalLayout {
+                spacing: 14px;
+                SectionTitle {
+                    text: "Media info";
+                }
+                FactGrid {
+                    facts: root.data.media;
+                }
+            }
+
+            // ---- the collections this title is part of
+            for collection in root.collections: VerticalLayout {
+                spacing: 12px;
+                CardRail {
+                    heading: "Part of " + collection.title;
+                    cards: collection.cards;
+                    activate(id, kind, name) => {
+                        root.activate(id, kind, name);
+                    }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    M3Button {
+                        text: "View the collection";
+                        kind: ButtonKind.outlined;
+                        clicked => {
+                            root.open-collection(collection.id, collection.title);
+                        }
+                    }
+                }
+            }
+
+            if !root.loading && root.similar.length > 0: CardRail {
+                heading: "More like this";
+                cards: root.similar;
+                activate(id, kind, name) => {
+                    root.activate(id, kind, name);
+                }
+            }
+        }
+    }
+}

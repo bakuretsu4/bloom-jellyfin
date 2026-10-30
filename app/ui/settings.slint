@@ -1,0 +1,593 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Music } from "music.slint";
+import { M3Switch, Segmented, SelectField, M3TextField, M3Button, ButtonKind, Surface, Page } from "m3.slint";
+import { ThemeEditorPanel } from "themes.slint";
+
+// Every setting the screen shows, as the index of the option chosen (or on/off), so the lists of
+// options live here and the Rust side only maps indexes to the core's enums. See settings.rs.
+export struct SettingsData {
+    hwdec: int,
+    direct-play: bool,
+    quality: int,
+    audio-language: int,
+    subtitle-mode: int,
+    subtitle-language: int,
+    subtitle-size: int,
+    subtitle-background: int,
+    autoplay-next: bool,
+    theme: int,
+    accent: int,
+    notify-new-media: bool,
+    discord-presence: bool,
+    discord-show-title: bool,
+    discord-available: bool,
+    download-quality: int,
+    download-local-only: bool,
+    // 0, 1 or 2: one, two or three at once.
+    download-parallel: int,
+    // What is downloaded and what is free where downloads go.
+    storage-text: string,
+    version: string,
+    data-folder: string,
+    reduce-motion: bool,
+    // The zoom level as "100%", and whether it can go either way.
+    zoom-text: string,
+    zoom-can-out: bool,
+    zoom-can-in: bool,
+    // A custom theme is in use, so none of the three themes is.
+    custom-active: bool,
+    // The graphics renderer, "" when not detected.
+    renderer: string,
+    player-ready: bool,
+    // The server, as "Home Media, Jellyfin 12.1.0", and its address; "" when none.
+    server-line: string,
+    server-name: string,
+    server-address: string,
+    account: string,
+}
+
+// A titled group of rows, as a tonal card.
+component Group inherits Rectangle {
+    in property <string> heading;
+    in property <string> lead;
+    background: Theme.surface-container-low;
+    border-radius: 28px;
+    preferred-height: col.preferred-height;
+    col := VerticalLayout {
+        padding-left: 24px;
+        padding-right: 24px;
+        padding-top: 20px;
+        padding-bottom: 8px;
+        spacing: 4px;
+        alignment: start;
+        Text {
+            text: root.heading;
+            color: Theme.primary;
+            font-family: Theme.font;
+            font-size: 14px;
+            font-weight: 500;
+            height: 32px;
+            vertical-alignment: center;
+        }
+        if root.lead != "": Text {
+            text: root.lead;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 14px;
+            wrap: word-wrap;
+        }
+        @children
+    }
+}
+
+// A label and what it does on the left, the control on the right, a hairline under it.
+component Row inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <bool> last;
+    min-height: 64px;
+    preferred-height: content.preferred-height + 1px;
+    content := HorizontalLayout {
+        padding-top: 16px;
+        padding-bottom: 16px;
+        spacing: 24px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 16px;
+            }
+            if root.description != "": Text {
+                text: root.description;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                wrap: word-wrap;
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            horizontal-stretch: 0;
+            VerticalLayout {
+                alignment: center;
+                @children
+            }
+        }
+    }
+    if !root.last: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.outline-variant;
+    }
+}
+
+// A row whose control needs the width: under its name and hint.
+component StackedRow inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <bool> last;
+    preferred-height: content.preferred-height + 1px;
+    content := VerticalLayout {
+        padding-top: 16px;
+        padding-bottom: 16px;
+        spacing: 12px;
+        VerticalLayout {
+            spacing: 2px;
+            Text {
+                text: root.title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 16px;
+            }
+            Text {
+                text: root.description;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                wrap: word-wrap;
+            }
+        }
+        @children
+    }
+    if !root.last: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.outline-variant;
+    }
+}
+
+// A line of About: the name of the thing, then what it is.
+component Fact inherits HorizontalLayout {
+    in property <string> name;
+    in property <string> value;
+    in property <string> detail;
+    spacing: 24px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    Text {
+        text: root.name;
+        width: 120px;
+        color: Theme.on-surface-variant;
+        font-family: Theme.font;
+        font-size: 14px;
+        vertical-alignment: top;
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        Text {
+            text: root.value;
+            color: Theme.on-surface;
+            font-family: Theme.font;
+            font-size: 14px;
+            wrap: word-wrap;
+        }
+        if root.detail != "": Text {
+            text: root.detail;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 13px;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// A colour to pick: a disc, ringed when it is the one in use.
+component Swatch inherits Rectangle {
+    in property <color> swatch;
+    in property <bool> chosen;
+    in property <string> name;
+    callback picked();
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    border-width: root.chosen ? 3px : 0px;
+    border-color: Theme.on-surface;
+    Rectangle {
+        width: parent.width - 8px;
+        height: parent.height - 8px;
+        border-radius: self.width / 2;
+        background: root.swatch;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+}
+
+export component SettingsScreen inherits Page {
+    in property <SettingsData> data;
+    in property <[string]> audio-languages;
+    in property <[string]> subtitle-languages;
+    // key is the setting's name (see settings.rs); value is the option's index, or 0 or 1.
+    callback changed(string, int);
+    // Where downloads are saved; empty is the default folder. Pressed Enter in the field.
+    in-out property <string> download-location;
+    callback location-submitted(string);
+    // -1 a step out, 1 a step in, 0 back to 100%.
+    callback zoom(int);
+
+    Flickable {
+        content-height: page.preferred-height + 32px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        page := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 24px;
+            alignment: start;
+            VerticalLayout {
+                spacing: 4px;
+                max-width: 840px;
+                Text {
+                    text: "Settings";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 32px;
+                }
+                Text {
+                    text: "These apply to this computer.";
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                }
+            }
+
+            VerticalLayout {
+                max-width: 840px;
+                spacing: 24px;
+
+            Group {
+                heading: "Playback";
+                lead: "Tracks and quality picked in the player for one show or film still win over these.";
+                Row {
+                    title: "Hardware decoder";
+                    description: root.data.renderer != "" ? "Auto picks the best decoder for " + root.data.renderer + " and falls back to software for anything it can't decode. Changes take effect straight away." : "Auto picks the best decoder on this computer and falls back to software for anything it can't decode. Changes take effect straight away.";
+                    Segmented {
+                        options: ["Auto", "NVDEC", "VA-API", "Software"];
+                        selected: root.data.hwdec;
+                        picked(i) => {
+                            root.changed("hwdec", i);
+                        }
+                    }
+                }
+                Row {
+                    title: "Prefer direct play";
+                    description: "Plays the original file whenever this computer can decode it. Off, the server transcodes everything, which costs it CPU and costs you picture.";
+                    M3Switch {
+                        checked: root.data.direct-play;
+                        toggled(on) => {
+                            root.changed("direct-play", on ? 1 : 0);
+                        }
+                    }
+                }
+                Row {
+                    title: "Starting quality";
+                    description: "The quality the player opens at. Anything below Original has the server re-encode files larger or heavier than it.";
+                    Segmented {
+                        options: ["Original", "1080p", "720p"];
+                        selected: root.data.quality;
+                        picked(i) => {
+                            root.changed("quality", i);
+                        }
+                    }
+                }
+                Row {
+                    title: "Audio language";
+                    description: "For a file with more than one audio track, when you haven't picked one for that show or film.";
+                    SelectField {
+                        options: root.audio-languages;
+                        selected: root.data.audio-language;
+                        picked(i) => {
+                            root.changed("audio-language", i);
+                        }
+                    }
+                }
+                Row {
+                    title: "Subtitles";
+                    description: "Forced only shows signs and lines spoken in another language. Server's choice follows your Jellyfin account's settings.";
+                    Segmented {
+                        options: ["Server's choice", "Off", "Forced only", "Always"];
+                        selected: root.data.subtitle-mode;
+                        picked(i) => {
+                            root.changed("subtitle-mode", i);
+                        }
+                    }
+                }
+                if root.data.subtitle-mode >= 2: Row {
+                    title: "Subtitle language";
+                    description: "Which language's subtitles to show, where a file has several.";
+                    SelectField {
+                        options: root.subtitle-languages;
+                        selected: root.data.subtitle-language;
+                        picked(i) => {
+                            root.changed("subtitle-language", i);
+                        }
+                    }
+                }
+                Row {
+                    title: "Subtitle size";
+                    description: "For text subtitles, styled ones included. Picture subtitles (PGS, VobSub) stay the size the file draws them.";
+                    Segmented {
+                        options: ["Small", "Normal", "Large", "Huge"];
+                        selected: root.data.subtitle-size;
+                        picked(i) => {
+                            root.changed("subtitle-size", i);
+                        }
+                    }
+                }
+                Row {
+                    title: "Subtitle background";
+                    description: "A box reads better over bright scenes. Only plain subtitles take it; styled ones keep their own look.";
+                    Segmented {
+                        options: ["Outline", "Dark box"];
+                        selected: root.data.subtitle-background;
+                        picked(i) => {
+                            root.changed("subtitle-background", i);
+                        }
+                    }
+                }
+                Row {
+                    last: true;
+                    title: "Autoplay next episode";
+                    description: "Starts the next episode ten seconds after one ends. Off, the player waits for you to choose.";
+                    M3Switch {
+                        checked: root.data.autoplay-next;
+                        toggled(on) => {
+                            root.changed("autoplay-next", on ? 1 : 0);
+                        }
+                    }
+                }
+            }
+
+            Group {
+                heading: "Notifications";
+                Row {
+                    last: true;
+                    title: "New episodes and films";
+                    description: "A desktop notification when your server adds an episode or a film you can watch, while Bloom is open. A show's new episodes come as one, and a big batch as one in all.";
+                    M3Switch {
+                        checked: root.data.notify-new-media;
+                        toggled(on) => {
+                            root.changed("notify-new-media", on ? 1 : 0);
+                        }
+                    }
+                }
+            }
+
+            Group {
+                heading: "Discord";
+                Row {
+                    last: !(root.data.discord-presence && root.data.discord-available);
+                    title: "Show what you're watching";
+                    description: root.data.discord-available ? "While something plays, your Discord profile shows its cover, title, episode and time left, through the Discord app on this computer. It clears when playback stops. The cover is a public poster from your server's metadata sources (such as TMDB), since Discord can't reach your server. Nothing is sent when Discord isn't running, and nothing goes anywhere else." : "Not available in this build yet: Bloom's Discord application isn't registered.";
+                    M3Switch {
+                        enabled: root.data.discord-available;
+                        checked: root.data.discord-presence;
+                        toggled(on) => {
+                            root.changed("discord-presence", on ? 1 : 0);
+                        }
+                    }
+                }
+                if root.data.discord-presence && root.data.discord-available: Row {
+                    last: true;
+                    title: "Show the title";
+                    description: "Off, your profile only says you're watching a show or a film, with no cover.";
+                    M3Switch {
+                        checked: root.data.discord-show-title;
+                        toggled(on) => {
+                            root.changed("discord-show-title", on ? 1 : 0);
+                        }
+                    }
+                }
+            }
+
+            Group {
+                heading: "Downloads";
+                StackedRow {
+                    title: "Location";
+                    description: "Where new downloads are saved, with their artwork and subtitles. Ones already downloaded stay where they are. " + root.data.storage-text;
+                    HorizontalLayout {
+                        spacing: 12px;
+                        M3TextField {
+                            label: "~/Videos/Bloom";
+                            text <=> root.download-location;
+                            accepted => {
+                                root.location-submitted(root.download-location);
+                            }
+                        }
+                        M3Button {
+                            text: "Use";
+                            kind: ButtonKind.tonal;
+                            y: (parent.height - self.height) / 2;
+                            clicked => {
+                                root.location-submitted(root.download-location);
+                            }
+                        }
+                    }
+                }
+                Row {
+                    title: "Download quality";
+                    description: "Original is the file itself: no work for the server, and a paused download carries on where it stopped. 1080p and 720p are converted by the server as they download, at about 3.7 GB and 1.9 GB an hour, and start again if paused. A file already lighter than that downloads as it is, since converting it would only make it bigger.";
+                    Segmented {
+                        options: ["Original", "1080p", "720p"];
+                        selected: root.data.download-quality;
+                        picked(i) => {
+                            root.changed("download-quality", i);
+                        }
+                    }
+                }
+                Row {
+                    title: "Downloads at once";
+                    description: "More finishes a queue sooner, but they share the connection, and each 1080p or 720p download is a conversion running on the server.";
+                    Segmented {
+                        options: ["1", "2", "3"];
+                        selected: root.data.download-parallel;
+                        picked(i) => {
+                            root.changed("download-parallel", i);
+                        }
+                    }
+                }
+                Row {
+                    last: true;
+                    title: "Only download on the local network";
+                    description: "Downloads wait while " + (root.data.server-line != "" ? root.data.server-name : "the server") + " is reached over the internet rather than the network this computer is on.";
+                    M3Switch {
+                        checked: root.data.download-local-only;
+                        toggled(on) => {
+                            root.changed("download-local-only", on ? 1 : 0);
+                        }
+                    }
+                }
+            }
+
+            Group {
+                heading: "Appearance";
+                Row {
+                    title: "Theme";
+                    description: "Auto follows the desktop's light or dark preference. Choosing one of these leaves a custom theme.";
+                    Segmented {
+                        options: ["Auto", "Light", "Dark"];
+                        selected: root.data.custom-active ? -1 : root.data.theme;
+                        picked(i) => {
+                            root.changed("theme", i);
+                        }
+                    }
+                }
+                StackedRow {
+                    title: "Custom themes";
+                    description: "Your own background, panel, text and accent colours; Bloom works out the shades between. A theme is only used when its text and accent are readable, and the player's controls keep amber.";
+                    ThemeEditorPanel { }
+                }
+                Row {
+                    title: "Accent";
+                    description: "Each colour has a darker shade for the light theme, so it stays readable as text. The player's own controls keep amber, and a custom theme brings its own accent.";
+                    HorizontalLayout {
+                        spacing: 8px;
+                        for entry[i] in [{ name: "Amber", color: #e0862b }, { name: "Green", color: #2e8b6a }, { name: "Blue", color: #3e6fb0 }, { name: "Red", color: #c0463d }]: Swatch {
+                            swatch: entry.color;
+                            name: entry.name;
+                            chosen: root.data.accent == i;
+                            picked => {
+                                root.changed("accent", i);
+                            }
+                        }
+                    }
+                }
+                Row {
+                    title: "Zoom";
+                    description: "Also Ctrl with + and \u{2212}, and Ctrl with 0 to reset.";
+                    HorizontalLayout {
+                        spacing: 8px;
+                        M3Button {
+                            text: "\u{2212}";
+                            kind: ButtonKind.outlined;
+                            opacity: root.data.zoom-can-out ? 1.0 : 0.38;
+                            clicked => {
+                                if (root.data.zoom-can-out) {
+                                    root.zoom(-1);
+                                }
+                            }
+                        }
+                        M3Button {
+                            text: root.data.zoom-text;
+                            kind: ButtonKind.outlined;
+                            min-width: 72px;
+                            clicked => {
+                                root.zoom(0);
+                            }
+                        }
+                        M3Button {
+                            text: "+";
+                            kind: ButtonKind.outlined;
+                            opacity: root.data.zoom-can-in ? 1.0 : 0.38;
+                            clicked => {
+                                if (root.data.zoom-can-in) {
+                                    root.zoom(1);
+                                }
+                            }
+                        }
+                    }
+                }
+                Row {
+                    last: true;
+                    title: "Reduce motion";
+                    description: "On, animations and transitions stop and the spotlight stays on one title. Buffering still shows, because that's real waiting.";
+                    M3Switch {
+                        checked: root.data.reduce-motion;
+                        toggled(on) => {
+                            root.changed("reduce-motion", on ? 1 : 0);
+                        }
+                    }
+                }
+            }
+
+            Group {
+                heading: "About";
+                Fact {
+                    name: "Bloom";
+                    value: "Version " + root.data.version;
+                }
+                if root.data.server-line != "": Fact {
+                    name: "Server";
+                    value: root.data.server-line;
+                    detail: root.data.server-address;
+                }
+                if root.data.account != "": Fact {
+                    name: "Signed in as";
+                    value: root.data.account;
+                }
+                Fact {
+                    name: "Graphics";
+                    value: root.data.renderer != "" ? root.data.renderer : "Not detected";
+                }
+                Fact {
+                    name: "Player";
+                    value: root.data.player-ready ? "Ready" : "Not started";
+                }
+                Fact {
+                    name: "Data folder";
+                    value: root.data.data-folder;
+                }
+                Rectangle {
+                    height: 12px;
+                }
+            }
+            }
+        }
+    }
+}

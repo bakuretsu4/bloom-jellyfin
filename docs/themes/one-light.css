@@ -1,0 +1,19 @@
+/* One Light for Bloom.
+   Palette: One Light, Atom (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: light;
+  --ground: #fafafa;
+  --surface: #eaeaeb;
+  --surface-2: #dededf;
+  --raise: #f9f9f9;
+  --line: #c6c7c9;
+  --line-soft: #d8d8da;
+  --ink: #383a42;
+  --ink-2: #67686e;
+  --ink-3: #67686e;
+  --accent: #4078f2;
+  --accent-ink: #111111;
+  --good: #50a14f;
+  --alert: #e45649;
+}

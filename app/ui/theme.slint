@@ -1,0 +1,50 @@
+// M3 colour roles. Set from Rust (src/main.rs) with an HCT scheme. Globals cannot declare
+// animations in Slint, so the cross-fade between schemes is tweened on the Rust side.
+export global Theme {
+    // Reduce motion (the setting, or the desktop's): animation is skipped.
+    in property <bool> reduce-motion: false;
+    // The interface font: Bloom's own, or the one a custom theme names.
+    in property <string> font: "Roboto";
+    in property <color> primary: #808080;
+    in property <color> on-primary: #808080;
+    in property <color> primary-container: #808080;
+    in property <color> on-primary-container: #808080;
+    in property <color> secondary: #808080;
+    in property <color> on-secondary: #808080;
+    in property <color> secondary-container: #808080;
+    in property <color> on-secondary-container: #808080;
+    in property <color> tertiary: #808080;
+    in property <color> on-tertiary: #808080;
+    in property <color> tertiary-container: #808080;
+    in property <color> on-tertiary-container: #808080;
+    in property <color> error: #808080;
+    in property <color> on-error: #808080;
+    in property <color> error-container: #808080;
+    in property <color> on-error-container: #808080;
+    in property <color> surface: #808080;
+    in property <color> on-surface: #808080;
+    in property <color> on-surface-variant: #808080;
+    in property <color> surface-container-lowest: #808080;
+    in property <color> surface-container-low: #808080;
+    in property <color> surface-container: #808080;
+    in property <color> surface-container-high: #808080;
+    in property <color> surface-container-highest: #808080;
+    in property <color> outline: #808080;
+    in property <color> outline-variant: #808080;
+    in property <color> inverse-surface: #808080;
+    in property <color> inverse-on-surface: #808080;
+    in property <color> scrim: #808080;
+    // Direct play, watched, downloaded: a green that reads on this scheme (not tied to the accent).
+    in property <color> good: #808080;
+
+}
+
+// Where the page on screen is scrolled to, so a page keeps its place when it is left and come back
+// to (src/nav.rs). Each page's Flickable reports into it and takes a place back from it.
+export global PageScroll {
+    // How far the page is scrolled, as a positive distance.
+    in-out property <length> y;
+    // A place to go back to, waiting for the page to have enough content to scroll that far.
+    in-out property <bool> pending;
+    in-out property <length> target;
+}

@@ -71,6 +71,16 @@ it starts after a ten-second countdown, which <kbd>Esc</kbd> cancels; off, it wa
 <kbd>Shift</kbd>+<kbd>N</kbd> skips ahead at any time. The episode list beside the player shows the
 whole season and the start of the next.
 
+## Your screen while watching
+
+While a video is playing, Bloom asks not to dim the screen, lock it or send the machine to sleep,
+and lets go the moment you pause or stop.
+
+It asks in whichever way your desktop understands, so this works on a full desktop and on a bare
+window manager alike: the screensaver and power services on KDE Plasma, GNOME and Xfce; the
+Wayland idle inhibitor on sway, Hyprland and river; and the X server's idle count under window
+managers like i3, bspwm and dwm, which is what `xautolock`, `xidlehook` and `xss-lock` go by.
+
 ## Hardware decoding
 
 Bloom decodes video on your graphics card when it can, which keeps playback smooth, the fan quiet
@@ -92,7 +102,7 @@ If a file you expect your GPU to handle says "decoded in software", see
 Films and shows with trailers on your server get a **Trailer** button. With
 [yt-dlp](https://github.com/yt-dlp/yt-dlp) installed, trailers play inside Bloom's player;
 without it, or if yt-dlp can't find the video within 30 seconds, the trailer opens in your
-browser.
+browser, and Bloom says so under the buttons.
 
 ## Discord
 

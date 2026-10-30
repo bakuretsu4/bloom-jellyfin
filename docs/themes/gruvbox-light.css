@@ -1,0 +1,19 @@
+/* Gruvbox Light for Bloom.
+   Palette: Gruvbox by morhetz (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: light;
+  --ground: #ebdbb2;
+  --surface: #fbf1c7;
+  --surface-2: #f2e5bc;
+  --raise: #f9f5d7;
+  --line: #bdae93;
+  --line-soft: #d5c4a1;
+  --ink: #3c3836;
+  --ink-2: #504945;
+  --ink-3: #665c54;
+  --accent: #af3a03;
+  --accent-ink: #fbf1c7;
+  --good: #79740e;
+  --alert: #9d0006;
+}

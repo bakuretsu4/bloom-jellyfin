@@ -1,0 +1,39 @@
+[package]
+name = "bloom"
+version = "0.2.0"
+description = "Bloom: a desktop client for Jellyfin"
+edition = "2021"
+license = "GPL-3.0-or-later"
+publish = false
+
+[dependencies]
+bloom-core = { path = "../core" }
+# The winit hooks are for the mouse's back button and Ctrl with the wheel, which Slint's own events
+# don't carry (src/pointer.rs).
+slint = { version = "1", features = ["raw-window-handle-06", "unstable-winit-030"] }
+raw-window-handle = "0.6"
+# Keeping the screen awake over the session bus (src/awake.rs).
+dbus = "0.9"
+material-colors = { version = "0.5", features = ["quantize"] }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "sync", "macros", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+# The local clock, for "Ends at" (src/text.rs).
+libc = "0.2"
+# The Wayland way of keeping the screen awake (src/awake/wayland.rs), for compositors with no power
+# service on the session bus: sway, Hyprland and the rest. `system` works through the libwayland
+# the toolkit already has.
+wayland-client = { version = "0.31", features = ["system", "dlopen"] }
+wayland-protocols = { version = "0.32", features = ["client", "unstable"] }
+# Artwork arrives as JPEG (sometimes PNG or WebP) and is decoded off the UI thread.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+
+[build-dependencies]
+slint-build = "1"
+
+# Decoding artwork in an unoptimised development build is many times slower.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3

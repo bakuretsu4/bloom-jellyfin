@@ -1,0 +1,404 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Music } from "music.slint";
+import { Surface, M3Button, M3IconButton, M3DangerButton, SelectField, ButtonKind, Page } from "m3.slint";
+
+export struct DownloadData {
+    id: string,
+    item-id: string,
+    title: string,
+    subtitle: string,
+    // "queued", "downloading", "paused", "failed" or "done".
+    status: string,
+    // 0..1 while it downloads.
+    progress: float,
+    // "43%  •  1.2 of 2.9 GB  •  5.2 MB/s", "Queued", "Paused"...
+    detail: string,
+    error: string,
+    image: image,
+    has-image: bool,
+    // The qualities worth choosing for this one, and the one chosen.
+    qualities: [string],
+    quality-index: int,
+    // How far a finished one has been watched, 0..1.
+    watched: float,
+    // "2.9 GB", for the delete button.
+    size: string,
+    // A show's heading over its downloaded episodes, and whether they are listed; an episode under one.
+    header: bool,
+    expanded: bool,
+    indent: bool,
+    // The show's id, on its heading, to open and close it.
+    group: string,
+}
+
+// The disk, as the legend and bar show it.
+export struct StorageData {
+    // "Saved in /home/me/Videos/Bloom"
+    heading: string,
+    has-capacity: bool,
+    // Shares of the disk, 0..1.
+    bloom: float,
+    other: float,
+    bloom-text: string,
+    other-text: string,
+    free-text: string,
+}
+
+component DownloadRow inherits Rectangle {
+    in property <DownloadData> data;
+    // A finished one whose delete has been pressed once: the next press deletes.
+    in property <bool> confirming;
+    callback play();
+    callback pause();
+    callback resume();
+    callback remove();
+    // A show's heading was pressed: its episodes open or close.
+    callback toggle();
+    callback quality-picked(int);
+    property <bool> done: root.data.status == "done" || root.data.header;
+    height: 116px;
+    border-radius: 16px;
+    background: Theme.surface-container-low;
+
+    HorizontalLayout {
+        padding: 12px;
+        spacing: 16px;
+        // The picture plays a finished download.
+        Surface {
+            width: 168px;
+            border-radius: 10px;
+            background: Theme.surface-container-highest;
+            clicked => {
+                if (root.data.header) {
+                    root.toggle();
+                } else if (root.done) {
+                    root.play();
+                }
+            }
+            if root.data.has-image: Image {
+                source: root.data.image;
+                width: parent.width;
+                height: parent.height;
+                image-fit: cover;
+            }
+            if root.done && !root.data.header: Image {
+                source: @image-url("../assets/icons/play_arrow.svg");
+                colorize: #ffffffe0;
+                width: 36px;
+                height: 36px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+            if root.done && root.data.watched > 0 && root.data.watched < 0.98: Rectangle {
+                y: parent.height - 4px;
+                height: 4px;
+                background: #00000080;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * root.data.watched;
+                    background: Theme.primary;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 3px;
+            Text {
+                text: root.data.title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 16px;
+                font-weight: 500;
+                overflow: elide;
+            }
+            if root.data.subtitle != "": Text {
+                text: root.data.subtitle;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 13px;
+                overflow: elide;
+            }
+            Text {
+                text: root.data.status == "failed" && root.data.error != "" ? root.data.error : root.data.detail;
+                color: root.data.status == "failed" ? Theme.error : Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 13px;
+                overflow: elide;
+            }
+            if !root.done: Rectangle {
+                height: 6px;
+                border-radius: 3px;
+                background: Theme.surface-container-highest;
+                clip: true;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * root.data.progress;
+                    background: root.data.status == "paused" ? Theme.outline : Theme.primary;
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+            if !root.done && root.data.qualities.length > 1: VerticalLayout {
+                alignment: center;
+                SelectField {
+                    options: root.data.qualities;
+                    selected: root.data.quality-index;
+                    min-width: 130px;
+                    picked(i) => {
+                        root.quality-picked(i);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    spacing: 4px;
+                    if root.data.status == "downloading" || root.data.status == "queued": M3IconButton {
+                        icon: @image-url("../assets/icons/pause.svg");
+                        clicked => {
+                            root.pause();
+                        }
+                    }
+                    if root.data.status == "paused": M3IconButton {
+                        icon: @image-url("../assets/icons/play_arrow.svg");
+                        clicked => {
+                            root.resume();
+                        }
+                    }
+                    if root.data.status == "failed": M3Button {
+                        text: "Try again";
+                        kind: ButtonKind.tonal;
+                        clicked => {
+                            root.resume();
+                        }
+                    }
+                    if root.data.header: M3IconButton {
+                        icon: @image-url("../assets/icons/chevron_right.svg");
+                        transform-rotation: root.data.expanded ? 90deg : 0deg;
+                        animate transform-rotation { duration: Theme.reduce-motion ? 0ms : 200ms; }
+                        clicked => {
+                            root.toggle();
+                        }
+                    }
+                    if !root.done: M3IconButton {
+                        icon: @image-url("../assets/icons/close.svg");
+                        clicked => {
+                            root.remove();
+                        }
+                    }
+                    if root.done && !root.confirming: M3IconButton {
+                        icon: @image-url("../assets/icons/delete.svg");
+                        clicked => {
+                            root.remove();
+                        }
+                    }
+                    if root.done && root.confirming: M3DangerButton {
+                        text: "Delete " + root.data.size;
+                        clicked => {
+                            root.remove();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component DownloadsScreen inherits Page {
+    in property <[DownloadData]> active;
+    in property <[DownloadData]> ready;
+    // How many downloads are ready (the list also holds shows' headings).
+    in property <int> ready-count;
+    in property <StorageData> storage;
+    in property <bool> loading;
+    // The server isn't answering, and what it is called.
+    in property <bool> offline;
+    in property <string> server-name;
+    callback play(string);
+    callback pause(string);
+    callback resume(string);
+    callback remove(string);
+    callback quality-picked(string, int);
+    callback toggle-group(string);
+    // A finished download whose delete was pressed once; cleared after four seconds, as the original.
+    property <string> confirming;
+
+    confirm-timer := Timer {
+        interval: 4s;
+        running: root.confirming != "";
+        triggered => {
+            root.confirming = "";
+        }
+    }
+
+    Flickable {
+        content-height: col.preferred-height + 32px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        col := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 12px;
+            alignment: start;
+            VerticalLayout {
+                spacing: 4px;
+                Text {
+                    text: "Downloads";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 32px;
+                }
+                Text {
+                    text: root.storage.heading != "" ? root.storage.heading : "Saved on this computer";
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                }
+            }
+            if root.offline: Text {
+                text: root.server-name + " isn't answering. Everything downloaded still plays, and where you stop watching is sent to it once it's back.";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                wrap: word-wrap;
+                max-width: 700px;
+            }
+            if root.storage.has-capacity: VerticalLayout {
+                spacing: 10px;
+                max-width: 980px;
+                padding-bottom: 12px;
+                Rectangle {
+                    height: 8px;
+                    border-radius: 4px;
+                    background: Theme.surface-container-highest;
+                    clip: true;
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * root.storage.bloom;
+                        background: Theme.primary;
+                    }
+                    Rectangle {
+                        x: parent.width * root.storage.bloom;
+                        width: parent.width * root.storage.other;
+                        background: Theme.outline;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 20px;
+                    alignment: start;
+                    for entry in [{ text: root.storage.bloom-text, swatch: Theme.primary }, { text: root.storage.other-text, swatch: Theme.outline }, { text: root.storage.free-text, swatch: Theme.surface-container-highest }]: HorizontalLayout {
+                        spacing: 8px;
+                        Rectangle {
+                            width: 10px;
+                            height: 10px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 5px;
+                            background: entry.swatch;
+                            border-width: 1px;
+                            border-color: Theme.outline;
+                        }
+                        Text {
+                            text: entry.text;
+                            color: Theme.on-surface-variant;
+                            font-family: Theme.font;
+                            font-size: 13px;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+            if !root.loading && root.active.length == 0 && root.ready.length == 0: VerticalLayout {
+                padding-top: 24px;
+                spacing: 6px;
+                Text {
+                    text: "Nothing downloaded yet";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 20px;
+                }
+                Text {
+                    text: "Download a film or an episode from its page, or a whole season at once, to watch it without a connection.";
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                    max-width: 560px;
+                }
+            }
+            if root.active.length > 0: Text {
+                text: "In progress";
+                color: Theme.primary;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            for d in root.active: DownloadRow {
+                max-width: 980px;
+                data: d;
+                pause => {
+                    root.pause(d.id);
+                }
+                resume => {
+                    root.resume(d.id);
+                }
+                remove => {
+                    root.remove(d.id);
+                }
+                quality-picked(i) => {
+                    root.quality-picked(d.id, i);
+                }
+            }
+            if root.ready.length > 0: HorizontalLayout {
+                spacing: 10px;
+                alignment: start;
+                Text {
+                    text: "Ready to watch";
+                    color: Theme.primary;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+                Text {
+                    text: root.ready-count;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 13px;
+                }
+            }
+            for d in root.ready: HorizontalLayout {
+                max-width: 980px;
+                padding-left: d.indent ? 36px : 0px;
+              DownloadRow {
+                data: d;
+                confirming: root.confirming == d.id;
+                toggle => {
+                    root.toggle-group(d.group);
+                }
+                play => {
+                    root.play(d.item-id);
+                }
+                remove => {
+                    // The first press asks once more; the second deletes.
+                    if (root.confirming == d.id) {
+                        root.confirming = "";
+                        root.remove(d.id);
+                    } else {
+                        root.confirming = d.id;
+                    }
+                }
+            }
+            }
+        }
+    }
+}

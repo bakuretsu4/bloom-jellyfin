@@ -1,0 +1,19 @@
+/* Catppuccin Macchiato for Bloom.
+   Palette: Catppuccin, catppuccin.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #24273a;
+  --surface: #363a4f;
+  --surface-2: #494d64;
+  --raise: #494d64;
+  --line: #5b6078;
+  --line-soft: #494d64;
+  --ink: #cad3f5;
+  --ink-2: #b8c0e0;
+  --ink-3: #a5adcb;
+  --accent: #c6a0f6;
+  --accent-ink: #181926;
+  --good: #a6da95;
+  --alert: #ed8796;
+}

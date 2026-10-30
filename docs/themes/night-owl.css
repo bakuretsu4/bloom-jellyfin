@@ -1,0 +1,19 @@
+/* Night Owl for Bloom.
+   Palette: Night Owl, Sarah Drasner (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #011627;
+  --surface: #0b2942;
+  --surface-2: #19364e;
+  --raise: #1f3b53;
+  --line: #344d64;
+  --line-soft: #1f3b53;
+  --ink: #d6deeb;
+  --ink-2: #96a2b0;
+  --ink-3: #83909f;
+  --accent: #82aaff;
+  --accent-ink: #111111;
+  --good: #addb67;
+  --alert: #ef5350;
+}

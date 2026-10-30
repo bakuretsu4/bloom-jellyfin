@@ -1,0 +1,274 @@
+import { Theme, PageScroll } from "theme.slint";
+import { M3Button, M3Chip, SelectField, Segmented, ButtonKind, Page } from "m3.slint";
+import { Music } from "music.slint";
+import { CardData, CardGrid } from "cards.slint";
+
+// One button in the row of pages: a page, a gap ("..."), or Previous/Next.
+export struct PagerItem {
+    label: string,
+    // The page (0-based) it goes to.
+    target: int,
+    current: bool,
+    // 0 a page, 1 a gap, 2 Previous, 3 Next.
+    kind: int,
+    enabled: bool,
+}
+
+component Pager inherits HorizontalLayout {
+    in property <[PagerItem]> items;
+    callback chosen(int);
+    spacing: 6px;
+    alignment: center;
+    for item in root.items: Rectangle {
+        width: item.kind == 1 ? 28px : max(40px, label.preferred-width + 24px);
+        height: 40px;
+        border-radius: 20px;
+        background: item.current ? Theme.secondary-container : transparent;
+        border-width: item.kind >= 2 ? 1px : 0px;
+        border-color: Theme.outline;
+        opacity: item.enabled || item.kind == 1 ? 1.0 : 0.38;
+        label := Text {
+            text: item.label;
+            color: item.current ? Theme.on-secondary-container : Theme.on-surface;
+            font-family: Theme.font;
+            font-size: 14px;
+            font-weight: item.current ? 700 : 500;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        if item.kind != 1 && item.enabled: TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.chosen(item.target);
+            }
+        }
+    }
+}
+
+// A library (paged, sortable), the list of libraries, a collection, or a person's credits.
+export component LibraryScreen inherits Page {
+    in property <string> heading;
+    in property <[CardData]> cards;
+    in property <int> total;
+    in property <bool> wide;
+    in property <bool> loading;
+    in property <bool> sortable;
+    in property <int> sort-index;
+    in property <bool> downloaded;
+    // A music library: albums, artists or songs (0, 1, 2).
+    in property <bool> music;
+    in property <int> music-kind;
+    in property <int> page;
+    in property <int> pages;
+    in property <[PagerItem]> pager;
+    // What the server said when the list couldn't be had, and what to call that.
+    in property <string> error;
+    in property <string> error-title;
+    // What to say when there is nothing to list.
+    in property <string> empty-title;
+    in property <string> empty-text;
+    // "3 titles, page 1 of 2", or "2 libraries".
+    in property <string> eyebrow;
+    // A person's page: who they are, above the grid of what they're in.
+    in property <bool> has-intro;
+    in property <string> intro-initial;
+    in property <image> intro-image;
+    in property <bool> intro-has-image;
+    in property <string> intro-lines;
+    in property <string> intro-text;
+    callback activate(string, string, string);
+    callback sort-chosen(int);
+    callback music-kind-chosen(int);
+    callback toggle-downloaded();
+    callback page-chosen(int);
+    callback retry();
+
+    // A new page starts at the top.
+    changed page => {
+        fl.content-y = 0;
+    }
+
+    fl := Flickable {
+        content-height: col.preferred-height + 48px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        col := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 16px;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 14px;
+                alignment: start;
+                Text {
+                    text: root.heading;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 32px;
+                    vertical-alignment: center;
+                }
+                if root.eyebrow != "": Text {
+                    text: root.eyebrow;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                }
+            }
+            if root.has-intro: HorizontalLayout {
+                spacing: 24px;
+                Rectangle {
+                    width: 160px;
+                    height: 240px;
+                    border-radius: 16px;
+                    clip: true;
+                    background: Theme.surface-container-highest;
+                    Text {
+                        text: root.intro-initial;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 48px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    if root.intro-has-image: Image {
+                        source: root.intro-image;
+                        width: parent.width;
+                        height: parent.height;
+                        image-fit: cover;
+                    }
+                }
+                VerticalLayout {
+                    spacing: 10px;
+                    alignment: start;
+                    if root.intro-lines != "": Text {
+                        text: root.intro-lines;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        wrap: word-wrap;
+                    }
+                    if root.intro-text != "": Text {
+                        text: root.intro-text;
+                        color: Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 15px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+            if root.has-intro && root.cards.length > 0: Text {
+                text: "Appears in";
+                color: Theme.primary;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            if root.music: HorizontalLayout {
+                alignment: start;
+                Segmented {
+                    options: ["Albums", "Artists", "Songs"];
+                    selected: root.music-kind;
+                    picked(k) => {
+                        root.music-kind-chosen(k);
+                    }
+                }
+            }
+            if root.sortable && !(root.music && root.music-kind == 1): HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+                SelectField {
+                    options: ["Date added", "Name", "Year", "Rating"];
+                    selected: root.sort-index;
+                    min-width: 180px;
+                    picked(i) => {
+                        root.sort-chosen(i);
+                    }
+                }
+                if !root.music: M3Chip {
+                    text: "Downloaded";
+                    selected: root.downloaded;
+                    y: (parent.height - self.height) / 2;
+                    clicked => {
+                        root.toggle-downloaded();
+                    }
+                }
+            }
+            if root.error != "": VerticalLayout {
+                padding-top: 24px;
+                spacing: 10px;
+                Text {
+                    text: root.error-title;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                }
+                Text {
+                    text: root.error;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    M3Button {
+                        text: root.loading ? "Trying again" : "Try again";
+                        kind: ButtonKind.tonal;
+                        clicked => {
+                            root.retry();
+                        }
+                    }
+                }
+            }
+            CardGrid {
+                cards: root.cards;
+                wide: root.wide;
+                square: root.music;
+                opacity: root.loading ? 0.6 : 1.0;
+                activate(id, kind, name) => {
+                    root.activate(id, kind, name);
+                }
+            }
+            if root.loading && root.cards.length == 0: Text {
+                text: "Loading\u{2026}";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+            }
+            if root.pages > 1: Pager {
+                items: root.pager;
+                chosen(p) => {
+                    root.page-chosen(p);
+                }
+            }
+            if !root.loading && root.error == "" && root.cards.length == 0: VerticalLayout {
+                padding-top: 24px;
+                spacing: 6px;
+                Text {
+                    text: root.empty-title;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: root.empty-text;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}

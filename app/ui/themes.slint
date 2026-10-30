@@ -1,0 +1,712 @@
+// The custom-theme editor in Settings → Appearance: the themes made so far, and a form for one
+// being made or changed. The state lives in Rust (src/themes_editor.rs) and is written into the
+// `ThemeEditor` global; text the person types is two-way bound to it.
+import { Theme } from "theme.slint";
+import { M3Button, ButtonKind, M3TextField, SelectField, Segmented, Surface, Typing } from "m3.slint";
+
+export struct ThemeChip {
+    id: string,
+    name: string,
+    ground: color,
+    surface: color,
+    ink: color,
+    accent: color,
+    active: bool,
+}
+
+export struct ThemeCheck {
+    label: string,
+    ratio: string,
+    ok: bool,
+}
+
+export global ThemeEditor {
+    in property <[ThemeChip]> chips;
+    // Ready-made themes to choose from.
+    in property <[ThemeChip]> presets;
+    in property <bool> editing;
+    // Changing a theme that exists, not making a new one: it can be deleted.
+    in property <bool> existing;
+    in property <bool> dark: true;
+    in property <bool> as-css;
+    in property <bool> usable: true;
+    in property <bool> copied;
+    in-out property <string> name;
+    // The four colours as typed (#rrggbb), and as colours for the swatches and the preview.
+    in-out property <string> hex-ground;
+    in-out property <string> hex-surface;
+    in-out property <string> hex-ink;
+    in-out property <string> hex-accent;
+    in property <color> ground;
+    in property <color> surface;
+    in property <color> ink;
+    in property <color> ink-2;
+    in property <color> ink-3;
+    in property <color> accent;
+    in property <color> accent-ink;
+    in property <color> line;
+    in-out property <string> css-text;
+    // What couldn't be used from the CSS, one per line; empty when all of it could.
+    in property <string> problems;
+    // "2 shades set by hand in CSS." when there are some.
+    in property <string> hand-set;
+    in property <[string]> fonts;
+    in property <int> font-index;
+    in property <bool> fonts-ready;
+    in property <[ThemeCheck]> checks;
+    // What "Copy CSS" puts on the clipboard.
+    in-out property <string> copy-text;
+
+    // Which colour (0 to 3) has its picker open, or -1.
+    in-out property <int> picker: -1;
+    // A colour chosen with the picker, as the colour it is.
+    callback colour-picked(int, color);
+    callback use-theme(string);
+    callback use-preset(string);
+    callback new-theme();
+    callback edit-theme(string);
+    callback name-edited();
+    callback set-dark(bool);
+    // The colour (0 background, 1 panels, 2 text, 3 accent) was typed or submitted.
+    callback hex-edited(int, bool);
+    callback toggle-css();
+    callback css-edited();
+    callback clear-hand();
+    callback pick-font(int);
+    callback save();
+    callback copy-css();
+    callback cancel();
+    callback delete();
+}
+
+// Several lines of text, scrolling to keep the caret in view.
+component M3TextArea inherits Rectangle {
+    in-out property <string> text <=> ti.text;
+    callback edited();
+    background: Theme.surface-container-highest;
+    border-radius: 8px;
+    border-width: ti.has-focus ? 2px : 1px;
+    border-color: ti.has-focus ? Theme.primary : Theme.outline;
+    clip: true;
+
+    fl := Flickable {
+        x: 0;
+        y: 0;
+        content-height: max(self.height, ti.preferred-height + 24px);
+        TouchArea {
+            mouse-cursor: MouseCursor.text;
+            clicked => {
+                ti.focus();
+            }
+        }
+        ti := TextInput {
+            x: 12px;
+            y: 12px;
+            width: parent.width - 24px;
+            single-line: false;
+            wrap: word-wrap;
+            font-family: "monospace";
+            font-size: 13px;
+            color: Theme.on-surface;
+            edited => {
+                root.edited();
+            }
+            cursor-position-changed(p) => {
+                if (p.y + fl.content-y < 0px) {
+                    fl.content-y = -p.y;
+                } else if (p.y + 20px + fl.content-y > fl.height - 12px) {
+                    fl.content-y = fl.height - 12px - p.y - 20px;
+                }
+            }
+            changed has-focus => {
+                Typing.active = self.has-focus;
+            }
+        }
+    }
+}
+
+// A colour: its swatch and the hex code that sets it.
+// Hue along a bar, a saturation and value square, and the colour they make: the picker under a
+// colour's field. It starts from the colour it was opened on and reports each change as a colour.
+component ColourPicker inherits Rectangle {
+    in property <color> start;
+    callback picked(color);
+    property <float> h: root.start.to-hsv().hue;
+    property <float> s: root.start.to-hsv().saturation;
+    property <float> v: root.start.to-hsv().value;
+    height: 176px;
+    function emit() {
+        root.picked(Colors.hsv(root.h, root.s, root.v));
+    }
+    // Saturation to the right, value upward, at the current hue.
+    field := Rectangle {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: 140px;
+        border-radius: 8px;
+        clip: true;
+        background: Colors.hsv(root.h, 1.0, 1.0);
+        Rectangle {
+            background: @linear-gradient(90deg, #ffffff 0%, #ffffff00 100%);
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, #00000000 0%, #000000 100%);
+        }
+        Rectangle {
+            x: root.s * parent.width - self.width / 2;
+            y: (1 - root.v) * parent.height - self.height / 2;
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            border-width: 2px;
+            border-color: #ffffff;
+            background: Colors.hsv(root.h, root.s, root.v);
+        }
+        TouchArea {
+            mouse-cursor: crosshair;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down || (e.kind == PointerEventKind.move && self.pressed)) {
+                    root.s = max(0.0, min(1.0, self.mouse-x / self.width));
+                    root.v = 1.0 - max(0.0, min(1.0, self.mouse-y / self.height));
+                    root.emit();
+                }
+            }
+            moved => {
+                root.s = max(0.0, min(1.0, self.mouse-x / self.width));
+                root.v = 1.0 - max(0.0, min(1.0, self.mouse-y / self.height));
+                root.emit();
+            }
+        }
+    }
+    hue := Rectangle {
+        x: 0;
+        y: 152px;
+        width: parent.width;
+        height: 16px;
+        border-radius: 8px;
+        background: @linear-gradient(90deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+        Rectangle {
+            x: root.h / 360 * parent.width - self.width / 2;
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            border-width: 2px;
+            border-color: #ffffff;
+            background: Colors.hsv(root.h, 1.0, 1.0);
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down) {
+                    root.h = max(0.0, min(359.9, self.mouse-x / self.width * 360));
+                    root.emit();
+                }
+            }
+            moved => {
+                root.h = max(0.0, min(359.9, self.mouse-x / self.width * 360));
+                root.emit();
+            }
+        }
+    }
+}
+
+component ColourField inherits HorizontalLayout {
+    in property <string> label;
+    in property <color> swatch;
+    in-out property <string> hex;
+    // Pressing the swatch opens or closes the picker.
+    callback swatch-pressed();
+    callback edited(bool);
+    spacing: 12px;
+    height: 56px;
+    Rectangle {
+        width: 40px;
+        height: 40px;
+        y: (parent.height - self.height) / 2;
+        border-radius: 20px;
+        background: root.swatch;
+        border-width: 1px;
+        border-color: Theme.outline;
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.swatch-pressed();
+            }
+        }
+    }
+    M3TextField {
+        label: root.label;
+        text <=> root.hex;
+        edited => {
+            root.edited(false);
+        }
+        accepted => {
+            root.edited(true);
+        }
+    }
+}
+
+export component ThemeEditorPanel inherits VerticalLayout {
+    spacing: 12px;
+
+    // What "Copy CSS" selects and copies.
+    clipboard := TextInput {
+        visible: false;
+        width: 1px;
+        height: 1px;
+        text: ThemeEditor.copy-text;
+    }
+
+    // Ready-made themes: a card each, with its four colours; pressing one uses it.
+    if !ThemeEditor.editing: VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: "Ready-made";
+            color: Theme.primary;
+            font-family: Theme.font;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        presets-area := Rectangle {
+            property <int> columns: max(1, Math.floor((self.width + 8px) / (196px + 8px)));
+            property <length> cell: (self.width - (self.columns - 1) * 8px) / self.columns;
+            height: Math.ceil(ThemeEditor.presets.length / self.columns) * 52px;
+            for preset[i] in ThemeEditor.presets: Surface {
+                x: mod(i, presets-area.columns) * (presets-area.cell + 8px);
+                y: floor(i / presets-area.columns) * 52px;
+                width: presets-area.cell;
+                height: 44px;
+                border-radius: 12px;
+                background: preset.active ? Theme.secondary-container : transparent;
+                border-width: preset.active ? 0px : 1px;
+                border-color: Theme.outline-variant;
+                tint: preset.active ? Theme.on-secondary-container : Theme.on-surface;
+                clicked => {
+                    ThemeEditor.use-preset(preset.id);
+                }
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 10px;
+                    VerticalLayout {
+                        alignment: center;
+                        width: 4 * 12px + 3 * 2px;
+                        Rectangle {
+                            height: 12px;
+                            // Background, panels, text and accent, as a strip.
+                            HorizontalLayout {
+                                spacing: 2px;
+                                for c in [preset.ground, preset.surface, preset.ink, preset.accent]: Rectangle {
+                                    width: 12px;
+                                    height: 12px;
+                                    border-radius: 6px;
+                                    background: c;
+                                    border-width: 1px;
+                                    border-color: Theme.outline;
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        text: preset.name;
+                        color: preset.active ? Theme.on-secondary-container : Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    if preset.active: VerticalLayout {
+                        alignment: center;
+                        width: 18px;
+                        Image {
+                            source: @image-url("../assets/icons/check.svg");
+                            colorize: Theme.on-secondary-container;
+                            width: 18px;
+                            height: 18px;
+                        }
+                    }
+                }
+            }
+        }
+        if ThemeEditor.chips.length > 0: Text {
+            text: "Yours";
+            color: Theme.primary;
+            font-family: Theme.font;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    }
+
+    for chip in ThemeEditor.chips: Rectangle {
+        height: 48px;
+        border-radius: 12px;
+        background: chip.active ? Theme.secondary-container : transparent;
+        border-width: chip.active ? 0px : 1px;
+        border-color: Theme.outline-variant;
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 8px;
+            spacing: 12px;
+            HorizontalLayout {
+                spacing: 2px;
+                y: (parent.height - self.height) / 2;
+                width: 4 * 14px + 3 * 2px;
+                height: 14px;
+                for c in [chip.ground, chip.surface, chip.ink, chip.accent]: Rectangle {
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 7px;
+                    background: c;
+                    border-width: 1px;
+                    border-color: Theme.outline;
+                }
+            }
+            Text {
+                text: chip.name;
+                color: chip.active ? Theme.on-secondary-container : Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 14px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            if chip.active: Text {
+                text: "In use";
+                color: Theme.on-secondary-container;
+                font-family: Theme.font;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+            if !chip.active: M3Button {
+                text: "Use";
+                kind: ButtonKind.text;
+                height: 36px;
+                y: (parent.height - self.height) / 2;
+                clicked => {
+                    ThemeEditor.use-theme(chip.id);
+                }
+            }
+            M3Button {
+                text: "Edit";
+                kind: ButtonKind.text;
+                height: 36px;
+                y: (parent.height - self.height) / 2;
+                clicked => {
+                    ThemeEditor.edit-theme(chip.id);
+                }
+            }
+        }
+    }
+
+    if !ThemeEditor.editing: HorizontalLayout {
+        alignment: start;
+        M3Button {
+            text: "New theme";
+            kind: ButtonKind.tonal;
+            clicked => {
+                ThemeEditor.new-theme();
+            }
+        }
+    }
+
+    if ThemeEditor.editing: HorizontalLayout {
+        spacing: 24px;
+        VerticalLayout {
+            spacing: 12px;
+            horizontal-stretch: 1;
+            M3TextField {
+                label: "Name";
+                text <=> ThemeEditor.name;
+                edited => {
+                    ThemeEditor.name-edited();
+                }
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                Segmented {
+                    options: ["Dark", "Light"];
+                    selected: ThemeEditor.dark ? 0 : 1;
+                    picked(i) => {
+                        ThemeEditor.set-dark(i == 0);
+                    }
+                }
+                M3Button {
+                    text: ThemeEditor.as-css ? "Back to colours" : "Edit as CSS";
+                    kind: ButtonKind.outlined;
+                    clicked => {
+                        ThemeEditor.toggle-css();
+                    }
+                }
+            }
+            if ThemeEditor.as-css: M3TextArea {
+                height: 340px;
+                text <=> ThemeEditor.css-text;
+                edited => {
+                    ThemeEditor.css-edited();
+                }
+            }
+            if ThemeEditor.as-css && ThemeEditor.problems != "": Text {
+                text: ThemeEditor.problems;
+                color: Theme.error;
+                font-family: Theme.font;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+            if ThemeEditor.as-css && ThemeEditor.problems == "": Text {
+                text: "Bloom's colour tokens as hex, --f-ui for the font and color-scheme for light or dark.";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+            if !ThemeEditor.as-css: VerticalLayout {
+                spacing: 8px;
+                ColourField {
+                    label: "Background";
+                    swatch: ThemeEditor.ground;
+                    hex <=> ThemeEditor.hex-ground;
+                    swatch-pressed => {
+                        ThemeEditor.picker = ThemeEditor.picker == 0 ? -1 : 0;
+                    }
+                    edited(done) => {
+                        ThemeEditor.hex-edited(0, done);
+                    }
+                }
+                if ThemeEditor.picker == 0: ColourPicker {
+                    start: ThemeEditor.ground;
+                    picked(c) => {
+                        ThemeEditor.colour-picked(0, c);
+                    }
+                }
+                ColourField {
+                    label: "Panels";
+                    swatch: ThemeEditor.surface;
+                    hex <=> ThemeEditor.hex-surface;
+                    swatch-pressed => {
+                        ThemeEditor.picker = ThemeEditor.picker == 1 ? -1 : 1;
+                    }
+                    edited(done) => {
+                        ThemeEditor.hex-edited(1, done);
+                    }
+                }
+                if ThemeEditor.picker == 1: ColourPicker {
+                    start: ThemeEditor.surface;
+                    picked(c) => {
+                        ThemeEditor.colour-picked(1, c);
+                    }
+                }
+                ColourField {
+                    label: "Text";
+                    swatch: ThemeEditor.ink;
+                    hex <=> ThemeEditor.hex-ink;
+                    swatch-pressed => {
+                        ThemeEditor.picker = ThemeEditor.picker == 2 ? -1 : 2;
+                    }
+                    edited(done) => {
+                        ThemeEditor.hex-edited(2, done);
+                    }
+                }
+                if ThemeEditor.picker == 2: ColourPicker {
+                    start: ThemeEditor.ink;
+                    picked(c) => {
+                        ThemeEditor.colour-picked(2, c);
+                    }
+                }
+                ColourField {
+                    label: "Accent";
+                    swatch: ThemeEditor.accent;
+                    hex <=> ThemeEditor.hex-accent;
+                    swatch-pressed => {
+                        ThemeEditor.picker = ThemeEditor.picker == 3 ? -1 : 3;
+                    }
+                    edited(done) => {
+                        ThemeEditor.hex-edited(3, done);
+                    }
+                }
+                if ThemeEditor.picker == 3: ColourPicker {
+                    start: ThemeEditor.accent;
+                    picked(c) => {
+                        ThemeEditor.colour-picked(3, c);
+                    }
+                }
+                if ThemeEditor.hand-set != "": HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Text {
+                        text: ThemeEditor.hand-set;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                    M3Button {
+                        text: "Clear";
+                        kind: ButtonKind.text;
+                        height: 32px;
+                        clicked => {
+                            ThemeEditor.clear-hand();
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "Font";
+                        color: Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                        width: 52px;
+                    }
+                    if ThemeEditor.fonts-ready: SelectField {
+                        options: ThemeEditor.fonts;
+                        selected: ThemeEditor.font-index;
+                        picked(i) => {
+                            ThemeEditor.pick-font(i);
+                        }
+                    }
+                    if !ThemeEditor.fonts-ready: Text {
+                        text: "Reading fonts";
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 12px;
+            width: 280px;
+            alignment: start;
+            // The theme on a copy of a panel, so it can be judged before it's used.
+            Rectangle {
+                height: 150px;
+                border-radius: 12px;
+                background: ThemeEditor.ground;
+                border-width: 1px;
+                border-color: ThemeEditor.line;
+                Rectangle {
+                    x: 12px;
+                    y: 12px;
+                    width: parent.width - 24px;
+                    height: parent.height - 24px;
+                    border-radius: 10px;
+                    background: ThemeEditor.surface;
+                    VerticalLayout {
+                        padding: 14px;
+                        spacing: 4px;
+                        alignment: start;
+                        Text {
+                            text: "Tokyo Ghoul";
+                            color: ThemeEditor.ink;
+                            font-size: 18px;
+                            font-weight: 600;
+                            font-family: Theme.font;
+                        }
+                        Text {
+                            text: "2014, 2 seasons, 24 episodes";
+                            color: ThemeEditor.ink-2;
+                            font-size: 12px;
+                            font-family: Theme.font;
+                        }
+                        Text {
+                            text: "S1 E4, Dinner";
+                            color: ThemeEditor.ink-3;
+                            font-size: 12px;
+                            font-family: Theme.font;
+                        }
+                        HorizontalLayout {
+                            spacing: 12px;
+                            padding-top: 8px;
+                            alignment: start;
+                            Rectangle {
+                                width: 58px;
+                                height: 28px;
+                                border-radius: 14px;
+                                background: ThemeEditor.accent;
+                                Text {
+                                    text: "Play";
+                                    color: ThemeEditor.accent-ink;
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                    font-family: Theme.font;
+                                }
+                            }
+                            Text {
+                                text: "More details";
+                                color: ThemeEditor.accent;
+                                font-size: 13px;
+                                vertical-alignment: center;
+                                font-family: Theme.font;
+                            }
+                        }
+                    }
+                }
+            }
+            for check in ThemeEditor.checks: HorizontalLayout {
+                spacing: 8px;
+                height: 20px;
+                Image {
+                    source: check.ok ? @image-url("../assets/icons/check.svg") : @image-url("../assets/icons/close.svg");
+                    colorize: check.ok ? Theme.good : Theme.error;
+                    width: 14px;
+                    height: 14px;
+                    y: (parent.height - self.height) / 2;
+                }
+                Text {
+                    text: check.label;
+                    color: check.ok ? Theme.on-surface-variant : Theme.error;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                Text {
+                    text: check.ratio;
+                    color: check.ok ? Theme.on-surface-variant : Theme.error;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    horizontal-alignment: right;
+                }
+            }
+            M3Button {
+                text: "Save and use";
+                opacity: ThemeEditor.usable ? 1.0 : 0.38;
+                clicked => {
+                    if (ThemeEditor.usable) {
+                        ThemeEditor.save();
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                M3Button {
+                    text: ThemeEditor.copied ? "Copied" : "Copy CSS";
+                    kind: ButtonKind.outlined;
+                    clicked => {
+                        ThemeEditor.copy-css();
+                        clipboard.select-all();
+                        clipboard.copy();
+                    }
+                }
+                M3Button {
+                    text: "Cancel";
+                    kind: ButtonKind.outlined;
+                    clicked => {
+                        ThemeEditor.cancel();
+                    }
+                }
+            }
+            if ThemeEditor.existing: M3Button {
+                text: "Delete";
+                kind: ButtonKind.text;
+                clicked => {
+                    ThemeEditor.delete();
+                }
+            }
+        }
+    }
+}

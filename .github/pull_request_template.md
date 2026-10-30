@@ -9,7 +9,6 @@
 
 ## Checklist
 
-- [ ] `npx svelte-check` passes (in `app/`)
-- [ ] `cargo clippy --all-targets` has no warnings and `cargo test` passes (in `app/src-tauri/`)
+- [ ] `cargo clippy --all-targets` has no warnings and `cargo test` passes (in `core/` and `app/`)
 - [ ] UI changes follow [DESIGN.md](../DESIGN.md), and user-facing changes are reflected in `docs/`
 - [ ] No personal details (server addresses, names, tokens) in code, tests, logs or screenshots

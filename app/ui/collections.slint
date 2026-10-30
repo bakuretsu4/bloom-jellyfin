@@ -1,0 +1,150 @@
+import { Theme } from "theme.slint";
+import { Surface, M3Button, M3IconButton, M3TextField, ButtonKind } from "m3.slint";
+
+// A collection, and whether the title the dialog is about is in it.
+export struct CollectionChoiceData {
+    id: string,
+    title: string,
+    contains: bool,
+}
+
+// "Collections": every collection with a check for the ones this title is in, and a field to make a new one.
+export component CollectionsDialog inherits Rectangle {
+    in property <string> heading;
+    in property <bool> loading;
+    in property <string> error;
+    in property <[CollectionChoiceData]> rows;
+    callback toggle(string, bool);
+    callback create(string);
+    callback close();
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        background: Theme.scrim.with-alpha(0.5);
+        TouchArea {
+            clicked => {
+                root.close();
+            }
+        }
+    }
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: max(24px, (parent.height - self.height) / 2);
+        width: min(520px, parent.width - 48px);
+        height: min(parent.height - 48px, content.preferred-height + 48px);
+        border-radius: 28px;
+        background: Theme.surface-container-high;
+        TouchArea { }
+        content := VerticalLayout {
+            padding: 24px;
+            spacing: 12px;
+            HorizontalLayout {
+                height: 40px;
+                Text {
+                    text: "Collections";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    horizontal-alignment: left;
+                }
+                M3IconButton {
+                    icon: @image-url("../assets/icons/close.svg");
+                    clicked => {
+                        root.close();
+                    }
+                }
+            }
+            Text {
+                text: root.heading;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                overflow: elide;
+            }
+            if root.error != "": Text {
+                text: root.error;
+                color: Theme.error;
+                font-family: Theme.font;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+            if root.loading: Text {
+                text: "Loading\u{2026}";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+            }
+            if !root.loading && root.rows.length == 0: Text {
+                text: "No collections yet.";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+            }
+            Flickable {
+                height: min(280px, list.preferred-height);
+                content-height: list.preferred-height;
+                list := VerticalLayout {
+                    spacing: 2px;
+                    for row in root.rows: Surface {
+                        height: 48px;
+                        border-radius: 12px;
+                        clicked => {
+                            root.toggle(row.id, row.contains);
+                        }
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 12px;
+                            spacing: 12px;
+                            Rectangle {
+                                width: 24px;
+                                if row.contains: Image {
+                                    x: 0;
+                                    y: (parent.height - self.height) / 2;
+                                    width: 24px;
+                                    height: 24px;
+                                    source: @image-url("../assets/icons/check.svg");
+                                    colorize: Theme.primary;
+                                }
+                            }
+                            Text {
+                                text: row.title;
+                                color: Theme.on-surface;
+                                font-family: Theme.font;
+                                font-size: 15px;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+                        }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                name := M3TextField {
+                    label: "New collection";
+                    horizontal-stretch: 1;
+                    accepted => {
+                        if (self.text != "") {
+                            root.create(self.text);
+                            self.text = "";
+                        }
+                    }
+                }
+                M3Button {
+                    y: (parent.height - self.height) / 2;
+                    text: "Create";
+                    kind: ButtonKind.tonal;
+                    clicked => {
+                        if (name.text != "") {
+                            root.create(name.text);
+                            name.text = "";
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

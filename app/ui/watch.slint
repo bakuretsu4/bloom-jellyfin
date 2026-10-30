@@ -1,0 +1,1475 @@
+import { Theme } from "theme.slint";
+import { Surface, M3Button, M3IconButton, M3Chip, MenuRow, MetaLine, MetaPart, SelectField, Tag, ButtonKind } from "m3.slint";
+import { PersonData, PersonCard, FactData, FactGrid } from "title.slint";
+
+// A seek bar or a volume bar: a track, what's buffered, what's played, and a handle on hover.
+// `committed` fires once, on release, with the fraction released at; `hovered` follows the pointer.
+component Scrubber inherits Rectangle {
+    in property <float> value;
+    in property <float> buffered;
+    callback committed(float);
+    // The pointer's place along the bar (0..1), or -1 when it has left.
+    callback hovered(float);
+    out property <bool> active: ta.has-hover || ta.pressed;
+    property <float> shown: ta.pressed ? max(0.0, min(1.0, ta.mouse-x / ta.width)) : root.value;
+    height: 24px;
+
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: root.active ? 6px : 4px;
+        border-radius: self.height / 2;
+        background: #ffffff40;
+        clip: true;
+        animate height { duration: Theme.reduce-motion ? 0ms : 120ms; }
+        // Anchored at the start: a child with no x would be centred in its parent.
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: parent.width * root.buffered;
+            height: parent.height;
+            background: #ffffff66;
+        }
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: parent.width * root.shown;
+            height: parent.height;
+            background: Theme.primary;
+        }
+    }
+    Rectangle {
+        x: parent.width * root.shown - self.width / 2;
+        y: (parent.height - self.height) / 2;
+        width: root.active ? 16px : 0px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: Theme.primary;
+        animate width { duration: Theme.reduce-motion ? 0ms : 120ms; }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.move) {
+                root.hovered(max(0.0, min(1.0, self.mouse-x / self.width)));
+            } else if (e.kind == PointerEventKind.cancel) {
+                root.hovered(-1.0);
+            }
+            if (e.button == PointerEventButton.left && e.kind == PointerEventKind.up) {
+                root.committed(max(0.0, min(1.0, self.mouse-x / self.width)));
+            }
+        }
+    }
+    changed active => {
+        if (!self.active) {
+            root.hovered(-1.0);
+        }
+    }
+}
+
+export struct TrackData {
+    // mpv's track id, or -1 for "off" in the subtitle list.
+    id: int,
+    label: string,
+    // The second line: codec details, or empty.
+    detail: string,
+    selected: bool,
+}
+
+// One line of the playback readout.
+export struct StatRow {
+    label: string,
+    value: string,
+}
+
+// An entry of the list beside the player: an episode, or a title like this one.
+export struct QueueData {
+    id: string,
+    title: string,
+    // "S1 E4" or the year
+    meta: string,
+    runtime: string,
+    progress: float,
+    played: bool,
+    current: bool,
+    image: image,
+    has-image: bool,
+}
+
+component QueueRow inherits Rectangle {
+    in property <QueueData> data;
+    in property <length> art-width: 148px;
+    callback play();
+    callback toggle-played();
+    height: art-width * 9 / 16 + 16px;
+    border-radius: 12px;
+    background: root.data.current ? Theme.secondary-container : transparent;
+    Surface {
+        border-radius: 12px;
+        clicked => {
+            root.play();
+        }
+        HorizontalLayout {
+            padding: 8px;
+            spacing: 12px;
+            Rectangle {
+                width: root.art-width;
+                border-radius: 8px;
+                clip: true;
+                background: Theme.surface-container-high;
+                if root.data.has-image: Image {
+                    source: root.data.image;
+                    width: parent.width;
+                    height: parent.height;
+                    image-fit: cover;
+                }
+                if root.data.runtime != "": Rectangle {
+                    x: parent.width - self.width - 4px;
+                    y: parent.height - self.height - 6px;
+                    width: qdur.preferred-width + 10px;
+                    height: 18px;
+                    border-radius: 4px;
+                    background: #000000a0;
+                    qdur := Text {
+                        text: root.data.runtime;
+                        color: #ffffff;
+                        font-family: Theme.font;
+                        font-size: 11px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                if root.data.progress > 0: Rectangle {
+                    y: parent.height - 4px;
+                    height: 4px;
+                    background: #00000080;
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * root.data.progress;
+                        background: Theme.primary;
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 2px;
+                Text {
+                    text: root.data.title;
+                    color: root.data.current ? Theme.on-secondary-container : Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    font-weight: 500;
+                    wrap: word-wrap;
+                    max-height: 40px;
+                    overflow: elide;
+                }
+                Text {
+                    text: root.data.meta;
+                    color: root.data.current ? Theme.on-secondary-container : Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    overflow: elide;
+                }
+            }
+            // Where it stands, as a mark: playing now, or watched.
+            if root.data.current || root.data.played: VerticalLayout {
+                alignment: center;
+                width: 24px;
+                Image {
+                    source: root.data.current ? @image-url("../assets/icons/equalizer.svg") : @image-url("../assets/icons/check_circle-fill.svg");
+                    colorize: root.data.current ? Theme.primary : Theme.good;
+                    width: 20px;
+                    height: 20px;
+                }
+            }
+        }
+    }
+}
+
+// A section of the settings menu: a small heading, then its rows.
+component MenuHeading inherits Text {
+    height: 32px;
+    color: Theme.primary;
+    font-family: Theme.font;
+    font-size: 12px;
+    font-weight: 500;
+    vertical-alignment: bottom;
+    horizontal-alignment: left;
+}
+
+// A choice in the settings menu: its name, what tells it apart under it, and a check when it is
+// the one in use.
+component MenuChoice inherits Surface {
+    in property <string> label;
+    in property <string> detail;
+    in property <bool> selected;
+    height: root.detail != "" ? 56px : 44px;
+    border-radius: 12px;
+    background: root.selected ? Theme.secondary-container : transparent;
+    tint: root.selected ? Theme.on-secondary-container : Theme.on-surface;
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.label;
+                color: root.selected ? Theme.on-secondary-container : Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: root.selected ? 500 : 400;
+                overflow: elide;
+            }
+            if root.detail != "": Text {
+                text: root.detail;
+                color: root.selected ? Theme.on-secondary-container : Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+        if root.selected: VerticalLayout {
+            alignment: center;
+            width: 20px;
+            Image {
+                source: @image-url("../assets/icons/check.svg");
+                colorize: Theme.on-secondary-container;
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+}
+
+// A speed in the menu: narrow, so seven fit in a row.
+component SpeedChip inherits Surface {
+    in property <string> text;
+    in property <bool> selected;
+    height: 32px;
+    border-radius: 8px;
+    background: root.selected ? Theme.secondary-container : transparent;
+    border-width: root.selected ? 0px : 1px;
+    border-color: Theme.outline-variant;
+    tint: root.selected ? Theme.on-secondary-container : Theme.on-surface-variant;
+    Text {
+        text: root.text;
+        color: root.selected ? Theme.on-secondary-container : Theme.on-surface-variant;
+        font-family: Theme.font;
+        font-size: 12px;
+        font-weight: 500;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Five bars that rise and fall: the buffering indicator.
+component LevelMeter inherits Rectangle {
+    in property <color> ink: #ffffffdd;
+    property <int> phase;
+    width: 44px;
+    height: 36px;
+    Timer {
+        interval: 140ms;
+        running: true;
+        triggered => {
+            root.phase = mod(root.phase + 1, 10);
+        }
+    }
+    for i in 5: Rectangle {
+        x: i * 9px;
+        width: 6px;
+        height: 8px + abs(mod(root.phase + i * 2, 10) - 5) * 5px;
+        y: parent.height - self.height;
+        border-radius: 3px;
+        background: root.ink;
+        animate height { duration: Theme.reduce-motion ? 0ms : 140ms; }
+    }
+}
+
+// Everything the player knows beyond the controls' own state: set from Rust (src/watch.rs,
+// src/playpage.rs), read by the player screen.
+export global Player {
+    in-out property <string> decoder-text;
+    // A subtitle track is showing.
+    in property <bool> subtitle-selected;
+    // The original's size, and what it is, for the quality menu's first line; empty when unknown.
+    in-out property <string> original-detail;
+    in-out property <[string]> chapter-names;
+    in-out property <bool> has-720;
+    in-out property <bool> is-trailer;
+    in-out property <[QueueData]> queue-next;
+    // Which entry of the list is playing (-1 when none is), so the list can scroll to it.
+    in-out property <int> queue-current: -1;
+    // Qualities worth offering: lighter than the file.
+    in property <bool> has-1080;
+    in-out property <string> up-next-kind;
+    in property <bool> has-next;
+    in-out property <int> up-next-seconds;
+    in property <float> up-next-fraction;
+    in-out property <bool> up-next-timer;
+    in property <image> up-next-image;
+    in-out property <bool> up-next-has-image;
+    // Couldn't play: why.
+    in property <string> error;
+    // The sizes: "default" (with the details and the list beside it), "theater", "fullscreen".
+    in-out property <string> mode: "default";
+    in-out property <bool> preview-visible;
+    in property <float> preview-fraction;
+    in-out property <string> preview-time;
+    in property <string> preview-chapter;
+    in-out property <image> preview-image;
+    in property <bool> preview-has-image;
+    in-out property <length> preview-width: 176px;
+
+    // ---- the details under the picture
+    // "Direct play" / "Transcoding", then codecs, resolution, rate, audio.
+    in property <string> method;
+    in-out property <bool> transcoding;
+    in property <string> readout;
+    // The playback readout (key I): shown, and its lines.
+    in-out property <bool> stats-visible;
+    in property <[StatRow]> stats;
+    in-out property <string> heading;
+    in property <[MetaPart]> meta;
+    in-out property <string> rating;
+    in property <bool> has-owner;
+    in-out property <string> owner-name;
+    in property <string> owner-sub;
+    in-out property <image> owner-image;
+    in property <bool> owner-has-image;
+    in-out property <bool> favorite;
+    in property <bool> played;
+    in-out property <string> download-label;
+    in property <string> download-status;
+    in-out property <string> action-error;
+    in property <string> overview;
+    in-out property <[FactData]> media;
+    in property <[PersonData]> cast;
+    in-out property <string> queue-heading;
+    // The show's name, or empty.
+    in property <string> queue-eyebrow;
+    in-out property <[QueueData]> queue;
+    in property <bool> queue-loading;
+    in-out property <string> queue-empty;
+    // For episodes: the seasons' names, the one listed, and what comes after it.
+    in property <[string]> queue-seasons;
+    in-out property <int> queue-season-index;
+    in property <string> queue-next-name;
+    callback toggle-subtitles();
+    callback set-mode(string);
+    callback scrub-hover(float);
+    callback viewport(length, length, length, length, length, length);
+    callback toggle-favorite();
+    callback toggle-played();
+    callback download();
+    callback open-owner();
+    callback open-person(string, string);
+    callback queue-play(string);
+    callback queue-toggle-played(string);
+    callback queue-season(int);
+    callback queue-next-season();
+}
+
+export component WatchScreen inherits Rectangle {
+    // ---- what is playing
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> time-text;
+    // Seconds, except volume (0 to 100).
+    in property <float> position;
+    in property <float> duration;
+    in property <float> cache-end;
+    in property <float> volume;
+    in property <bool> paused;
+    in property <bool> buffering;
+    in property <bool> started;
+    in property <bool> muted;
+    in property <bool> controls-visible: true;
+    in property <[TrackData]> audio-tracks;
+    in property <[TrackData]> subtitle-tracks;
+    in property <float> speed: 1;
+    in property <string> quality: "original";
+    // The chapters' start times in seconds, for ticks on the seek bar.
+    in property <[float]> chapters;
+    // "Skip intro" and the like, while a skippable stretch is playing; empty otherwise.
+    in property <string> skip-label;
+    in property <string> up-next-title;
+    in property <string> up-next-subtitle;
+    in-out property <bool> menu-open;
+    in-out property <string> menu-tab: "audio";
+    // The window's size, for the box's place.
+    in property <length> window-width;
+    in property <length> window-height;
+
+    callback set-audio(int);
+    callback set-subtitle(int);
+    callback set-speed(float);
+    callback set-quality(string);
+    callback skip();
+    callback play-next();
+    callback cancel-up-next();
+    callback jump-chapter(int);
+    callback back();
+    callback toggle-pause();
+    callback seek-by(float);
+    callback seek-to(float);
+    callback set-volume(float);
+    callback toggle-mute();
+    callback activity();
+
+    // The picture is drawn under this window; only the box is left clear for it.
+    background: transparent;
+    forward-focus: keys;
+    property <bool> theater: Player.mode == "theater";
+    property <bool> fullscreen: Player.mode == "fullscreen";
+    property <float> fraction: root.duration > 0 ? max(0.0, min(1.0, root.position / root.duration)) : 0.0;
+    // The bar glides between the player's updates (one every 250 ms) instead of stepping at each.
+    property <float> glide: root.fraction;
+    animate glide { duration: Theme.reduce-motion ? 0ms : 250ms; easing: linear; }
+    property <float> buffered: root.duration > 0 ? max(0.0, min(1.0, root.cache-end / root.duration)) : 0.0;
+
+    // ---- where things are
+    // The list sits beside the player in the default size, in a wide enough window.
+    property <bool> side-by-side: Player.mode == "default" && root.width >= 1180px;
+    property <length> side-w: root.side-by-side ? 352px : 0px;
+    property <length> gutter: 26px;
+    // The player's column (up to 1332 px) and the list stay together in the middle of a wide window.
+    property <length> col-w: root.side-by-side ? min(root.width - 352px, 1332px) : root.width;
+    property <length> col-x: (root.width - root.col-w - root.side-w) / 2;
+    property <length> box-w: root.fullscreen ? root.width : (root.theater ? root.col-w : min(root.col-w - 2 * root.gutter, 1280px));
+    property <length> box-h: root.fullscreen ? root.height : (root.theater ? min(root.box-w * 9 / 16, root.height - 84px) : min(root.box-w * 9 / 16, root.height - 216px));
+    property <length> box-x: root.fullscreen ? 0px : root.col-x + (root.col-w - root.box-w) / 2;
+    property <length> box-y: (root.fullscreen || root.theater) ? 0px : 16px;
+    property <color> ground: root.theater ? Theme.surface-container-lowest : Theme.surface;
+    // Reported to the player so it draws the picture in the box.
+    property <length> report-x: root.box-x + root.absolute-position.x;
+    property <length> report-y: root.box-y + root.absolute-position.y;
+    changed report-x => {
+        root.report();
+    }
+    changed report-y => {
+        root.report();
+    }
+    changed box-w => {
+        root.report();
+    }
+    changed box-h => {
+        root.report();
+    }
+    changed window-width => {
+        root.report();
+    }
+    changed window-height => {
+        root.report();
+    }
+    function report() {
+        Player.viewport(root.report-x, root.report-y, root.box-w, root.box-h, root.window-width, root.window-height);
+    }
+    init => {
+        keys.focus();
+        root.report();
+    }
+
+    // The keys themselves are handled by the window (`App.watch-key`), wherever focus is.
+    keys := FocusScope {
+        // Pressing anywhere with nothing to press takes the keyboard back from a text field.
+        TouchArea {
+            x: 0;
+            y: 0;
+            width: root.width;
+            height: root.height;
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.down) {
+                    keys.focus();
+                }
+            }
+        }
+        // ---- the ground around the box, so nothing under the window shows through
+        Rectangle {
+            y: 0;
+            height: root.box-y;
+            background: root.ground;
+        }
+        Rectangle {
+            y: root.box-y + root.box-h;
+            height: root.height - root.box-y - root.box-h;
+            background: root.ground;
+        }
+        Rectangle {
+            x: 0;
+            y: root.box-y;
+            width: root.box-x;
+            height: root.box-h;
+            background: root.ground;
+        }
+        Rectangle {
+            x: root.box-x + root.box-w;
+            y: root.box-y;
+            width: root.width - root.box-x - root.box-w;
+            height: root.box-h;
+            background: root.ground;
+        }
+
+        // ---- the box: the picture shows through; the controls sit on it
+        box := Rectangle {
+            x: root.box-x;
+            y: root.box-y;
+            width: root.box-w;
+            height: root.box-h;
+            // Square: the picture is drawn beneath the window, so it can't be rounded, and a rounded
+            // overlay leaves its corners lit when the controls dim the rest.
+            border-radius: 0px;
+            clip: true;
+            background: transparent;
+
+            // The picture itself: a click pauses, a double click goes to or from full screen, any
+            // movement brings the controls back.
+            surface := TouchArea {
+                mouse-cursor: root.controls-visible ? MouseCursor.default : MouseCursor.none;
+                // `moved` only fires with a button held; hovering is a pointer event.
+                pointer-event(e) => {
+                    if (e.kind == PointerEventKind.move) {
+                        root.activity();
+                    }
+                }
+                clicked => {
+                    keys.focus();
+                    root.toggle-pause();
+                }
+                double-clicked => {
+                    Player.set-mode(root.fullscreen ? "default" : "fullscreen");
+                }
+            }
+
+            if Player.error != "": Rectangle {
+                background: #101010;
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 10px;
+                    padding: 32px;
+                    Text {
+                        text: "Couldn't play this";
+                        color: #ffffff;
+                        font-family: Theme.font;
+                        font-size: 24px;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: Player.error;
+                        color: #ffffffcc;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        alignment: center;
+                        M3Button {
+                            text: "Back to Home";
+                            kind: ButtonKind.tonal;
+                            clicked => {
+                                root.back();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Loading before the first frame; buffering after.
+            if (root.buffering || !root.started) && Player.error == "": Rectangle {
+                width: 80px;
+                height: 80px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                LevelMeter {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+            // Paused: a round mark, so it's plain that the picture is held.
+            if root.paused && root.started && !root.buffering && Player.error == "": Rectangle {
+                width: 80px;
+                height: 80px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                border-radius: 40px;
+                background: #000000a0;
+                Image {
+                    source: @image-url("../assets/icons/play_arrow.svg");
+                    colorize: #ffffff;
+                    width: 40px;
+                    height: 40px;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+
+            // Skip intro / recap / credits, while one is playing.
+            if root.skip-label != "" && Player.up-next-kind == "" && Player.error == "": Rectangle {
+                z: 10;
+                x: parent.width - self.width - 16px;
+                y: parent.height - self.height - (root.controls-visible ? 104px : 48px);
+                width: skip-btn.preferred-width;
+                height: 40px;
+                animate y { duration: Theme.reduce-motion ? 0ms : 200ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+                skip-btn := M3Button {
+                    text: root.skip-label;
+                    kind: ButtonKind.tonal;
+                    clicked => {
+                        root.skip();
+                    }
+                }
+            }
+
+            // The next episode: over the credits, or when this one has ended.
+            if Player.up-next-kind != "" && Player.error == "": Rectangle {
+                z: 10;
+                x: parent.width - self.width - 16px;
+                y: parent.height - self.height - 80px;
+                width: min(420px, parent.width - 32px);
+                height: 148px;
+                border-radius: 16px;
+                background: Theme.surface-container;
+                clip: true;
+                TouchArea { }
+                HorizontalLayout {
+                    padding: 12px;
+                    spacing: 14px;
+                    Rectangle {
+                        width: 132px;
+                        border-radius: 10px;
+                        clip: true;
+                        background: Theme.surface-container-high;
+                        if Player.up-next-has-image: Image {
+                            source: Player.up-next-image;
+                            width: parent.width;
+                            height: parent.height;
+                            image-fit: cover;
+                        }
+                    }
+                    VerticalLayout {
+                        spacing: 3px;
+                        Text {
+                            text: Player.up-next-timer ? "Up next in " + Player.up-next-seconds : "Up next";
+                            color: Theme.primary;
+                            font-family: Theme.font;
+                            font-size: 12px;
+                            font-weight: 500;
+                        }
+                        Text {
+                            text: root.up-next-title;
+                            color: Theme.on-surface;
+                            font-family: Theme.font;
+                            font-size: 15px;
+                            overflow: elide;
+                        }
+                        Text {
+                            text: root.up-next-subtitle;
+                            color: Theme.on-surface-variant;
+                            font-family: Theme.font;
+                            font-size: 12px;
+                            overflow: elide;
+                        }
+                        Rectangle {
+                            vertical-stretch: 1;
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: start;
+                            height: 36px;
+                            M3Button {
+                                text: "Play now";
+                                height: 36px;
+                                clicked => {
+                                    root.play-next();
+                                }
+                            }
+                            M3Button {
+                                text: Player.up-next-kind == "credits" ? "Watch credits" : "Cancel";
+                                kind: ButtonKind.text;
+                                height: 36px;
+                                clicked => {
+                                    root.cancel-up-next();
+                                }
+                            }
+                        }
+                    }
+                }
+                // The countdown drains along the bottom edge.
+                if Player.up-next-timer: Rectangle {
+                    y: parent.height - 3px;
+                    height: 3px;
+                    background: Theme.surface-container-highest;
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * Player.up-next-fraction;
+                        background: Theme.primary;
+                    }
+                }
+            }
+
+            // Audio, subtitles, speed and quality.
+            if root.menu-open && Player.error == "": Rectangle {
+                z: 11;
+                x: parent.width - self.width - 12px;
+                y: parent.height - 64px - self.height;
+                width: 360px;
+                height: min(parent.height - 80px, menu-col.preferred-height);
+                border-radius: 20px;
+                background: Theme.surface-container;
+                clip: true;
+                // Pressing anywhere in the panel isn't a click on the picture.
+                TouchArea { }
+                Flickable {
+                    menu-col := VerticalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        padding-top: 4px;
+                        padding-bottom: 12px;
+                        spacing: 2px;
+                        alignment: start;
+                        if !Player.is-trailer && (Player.has-1080 || Player.has-720 || Player.original-detail != ""): VerticalLayout {
+                            spacing: 2px;
+                            MenuHeading {
+                                text: "Quality";
+                            }
+                            MenuChoice {
+                                label: "Original";
+                                detail: Player.original-detail;
+                                selected: root.quality == "original";
+                                clicked => {
+                                    root.set-quality("original");
+                                }
+                            }
+                            if Player.has-1080: MenuChoice {
+                                label: "1080p";
+                                detail: "Converted by the server, up to 12 Mb/s";
+                                selected: root.quality == "1080p";
+                                clicked => {
+                                    root.set-quality("1080p");
+                                }
+                            }
+                            if Player.has-720: MenuChoice {
+                                label: "720p";
+                                detail: "Converted by the server, up to 6 Mb/s";
+                                selected: root.quality == "720p";
+                                clicked => {
+                                    root.set-quality("720p");
+                                }
+                            }
+                        }
+                        MenuHeading {
+                            text: "Speed";
+                        }
+                        HorizontalLayout {
+                            spacing: 4px;
+                            height: 36px;
+                            for option in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]: SpeedChip {
+                                horizontal-stretch: 1;
+                                text: option == 1.0 ? "1\u{00d7}" : option + "\u{00d7}";
+                                selected: Math.abs(root.speed - option) < 0.01;
+                                clicked => {
+                                    root.set-speed(option);
+                                }
+                            }
+                        }
+                        MenuHeading {
+                            text: "Audio";
+                        }
+                        for track in root.audio-tracks: MenuChoice {
+                            label: track.label;
+                            detail: track.detail;
+                            selected: track.selected;
+                            clicked => {
+                                root.set-audio(track.id);
+                            }
+                        }
+                        if root.audio-tracks.length == 0: Text {
+                            height: 36px;
+                            text: "This file has no audio.";
+                            color: Theme.on-surface-variant;
+                            font-family: Theme.font;
+                            font-size: 14px;
+                            vertical-alignment: center;
+                            x: 14px;
+                        }
+                        MenuHeading {
+                            text: "Subtitles";
+                        }
+                        for track in root.subtitle-tracks: MenuChoice {
+                            label: track.label;
+                            detail: track.detail;
+                            selected: track.selected;
+                            clicked => {
+                                root.set-subtitle(track.id);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // The playback readout: a card at the picture's corner, over everything but the menu.
+            if Player.stats-visible && Player.error == "": Rectangle {
+                z: 9;
+                x: 16px;
+                y: 64px;
+                width: min(380px, parent.width - 32px);
+                height: stats-col.preferred-height + 24px;
+                border-radius: 12px;
+                background: #000000b8;
+                stats-col := VerticalLayout {
+                    padding: 12px;
+                    spacing: 3px;
+                    Text {
+                        text: "Playback";
+                        color: #ffffffcc;
+                        font-family: Theme.font;
+                        font-size: 12px;
+                        font-weight: 500;
+                    }
+                    for row in Player.stats: HorizontalLayout {
+                        spacing: 10px;
+                        Text {
+                            width: 84px;
+                            text: row.label;
+                            color: #ffffff99;
+                            font-family: Theme.font;
+                            font-size: 12px;
+                        }
+                        Text {
+                            text: row.value;
+                            color: #ffffff;
+                            font-family: Theme.font;
+                            font-size: 12px;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+
+            // The seek preview rides above the bar at the pointer.
+            if Player.preview-visible && root.controls-visible: Rectangle {
+                z: 12;
+                width: Player.preview-width;
+                height: (Player.preview-has-image ? Player.preview-width * 9 / 16 + 8px : 0px) + 44px;
+                x: max(8px, min(parent.width - self.width - 8px, 24px + (parent.width - 48px) * Player.preview-fraction - self.width / 2));
+                y: parent.height - 112px - self.height;
+                border-radius: 10px;
+                clip: true;
+                background: #000000d0;
+                VerticalLayout {
+                    padding: 4px;
+                    spacing: 4px;
+                    if Player.preview-has-image: Image {
+                        source: Player.preview-image;
+                        width: parent.width - 8px;
+                        height: (parent.width - 8px) * 9 / 16;
+                        image-fit: cover;
+                    }
+                    VerticalLayout {
+                        Text {
+                            text: Player.preview-time;
+                            color: #ffffff;
+                            font-family: Theme.font;
+                            font-size: 13px;
+                            font-weight: 500;
+                            horizontal-alignment: center;
+                        }
+                        Text {
+                            text: Player.preview-chapter;
+                            color: #ffffffbb;
+                            font-family: Theme.font;
+                            font-size: 11px;
+                            horizontal-alignment: center;
+                            overflow: elide;
+                        }
+                    }
+                }
+            }
+
+            controls := Rectangle {
+                opacity: root.controls-visible ? 1.0 : 0.0;
+                visible: root.controls-visible || self.opacity > 0.01;
+                animate opacity { duration: Theme.reduce-motion ? 0ms : 250ms; }
+
+                // Moving over the controls counts as activity; pressing between them is a press on
+                // the picture.
+                TouchArea {
+                    mouse-cursor: MouseCursor.default;
+                    pointer-event(e) => {
+                        if (e.kind == PointerEventKind.move) {
+                            root.activity();
+                        }
+                    }
+                    clicked => {
+                        root.toggle-pause();
+                    }
+                    double-clicked => {
+                        Player.set-mode(root.fullscreen ? "default" : "fullscreen");
+                    }
+                }
+
+                Rectangle {
+                    y: 0;
+                    height: 110px;
+                    background: @linear-gradient(180deg, #000000a8 0%, #00000000 100%);
+                }
+                Rectangle {
+                    y: parent.height - self.height;
+                    height: 170px;
+                    background: @linear-gradient(0deg, #000000c8 0%, #00000000 100%);
+                }
+
+                // The top: back, and (outside the default size) the title.
+                HorizontalLayout {
+                    x: 0;
+                    y: 8px;
+                    height: 56px;
+                    padding-left: 12px;
+                    padding-right: 16px;
+                    spacing: 10px;
+                    M3IconButton {
+                        icon: @image-url("../assets/icons/arrow_back.svg");
+                        tint: #ffffff;
+                        y: (parent.height - self.height) / 2;
+                        clicked => {
+                            root.back();
+                        }
+                    }
+                    if Player.mode != "default": VerticalLayout {
+                        alignment: center;
+                        Text {
+                            text: root.title;
+                            color: #ffffff;
+                            font-family: Theme.font;
+                            font-size: 18px;
+                            overflow: elide;
+                        }
+                        if root.subtitle != "": Text {
+                            text: root.subtitle;
+                            color: #ffffffcc;
+                            font-family: Theme.font;
+                            font-size: 13px;
+                            overflow: elide;
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    x: 0;
+                    y: parent.height - self.height;
+                    // The bar is hidden while the next episode's card counts down.
+                    height: 104px;
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    padding-bottom: 10px;
+                    spacing: 2px;
+                    alignment: end;
+                    seek := Rectangle {
+                        height: 24px;
+                        Scrubber {
+                            value: root.glide;
+                            buffered: root.buffered;
+                            committed(f) => {
+                                root.seek-to(f);
+                            }
+                            hovered(f) => {
+                                if (f >= 0) {
+                                    root.activity();
+                                }
+                                Player.scrub-hover(f);
+                            }
+                        }
+                        // Where each chapter starts.
+                        for start in root.chapters: Rectangle {
+                            visible: root.duration > 0 && start > 1;
+                            x: parent.width * (start / max(1.0, root.duration)) - 1px;
+                            y: (parent.height - self.height) / 2;
+                            width: 2px;
+                            height: 8px;
+                            background: #ffffffb0;
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 2px;
+                        height: 48px;
+                        if root.chapters.length > 1: M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: @image-url("../assets/icons/chevron_left.svg");
+                            tint: #ffffff;
+                            clicked => {
+                                root.jump-chapter(-1);
+                            }
+                        }
+                        M3IconButton {
+                            icon: root.paused ? @image-url("../assets/icons/play_arrow.svg") : @image-url("../assets/icons/pause.svg");
+                            tint: #ffffff;
+                            width: 48px;
+                            height: 48px;
+                            clicked => {
+                                root.toggle-pause();
+                            }
+                        }
+                        if root.chapters.length > 1: M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: @image-url("../assets/icons/chevron_right.svg");
+                            tint: #ffffff;
+                            clicked => {
+                                root.jump-chapter(1);
+                            }
+                        }
+                        if Player.has-next: M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: @image-url("../assets/icons/skip_next.svg");
+                            tint: #ffffff;
+                            clicked => {
+                                root.play-next();
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            mute := M3IconButton {
+                                width: 48px;
+                                height: 48px;
+                                icon: root.muted || root.volume <= 0 ? @image-url("../assets/icons/volume_off.svg") : @image-url("../assets/icons/volume_up.svg");
+                                tint: #ffffff;
+                                clicked => {
+                                    root.toggle-mute();
+                                }
+                            }
+                        }
+                        // The slider opens as the pointer comes near, level with the icon.
+                        VerticalLayout {
+                            alignment: center;
+                            width: (mute.has-hover || vol.active) ? 72px : 0px;
+                            animate width { duration: Theme.reduce-motion ? 0ms : 250ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+                            vol := Scrubber {
+                                value: root.muted ? 0.0 : root.volume / 100;
+                                committed(f) => {
+                                    root.set-volume(f * 100);
+                                }
+                            }
+                        }
+                        Text {
+                            text: "  " + root.time-text;
+                            color: #ffffff;
+                            font-family: Theme.font;
+                            font-size: 14px;
+                            vertical-alignment: center;
+                        }
+                        if root.speed < 0.99 || root.speed > 1.01: Rectangle {
+                            width: spd.preferred-width + 16px;
+                            height: 24px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 12px;
+                            background: #ffffff30;
+                            spd := Text {
+                                text: (root.speed < 0.99 || root.speed > 1.01) ? "" + (round(root.speed * 100) / 100) + "\u{00d7}" : "";
+                                color: #ffffff;
+                                font-family: Theme.font;
+                                font-size: 12px;
+                                font-weight: 500;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        Rectangle { }
+                        M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: @image-url("../assets/icons/closed_caption.svg");
+                            tint: root.subtitle-tracks.length <= 1 ? #ffffff55 : (Player.subtitle-selected ? Theme.primary : #ffffff);
+                            clicked => {
+                                Player.toggle-subtitles();
+                            }
+                        }
+                        M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: @image-url("../assets/icons/settings.svg");
+                            tint: root.menu-open ? Theme.primary : #ffffff;
+                            clicked => {
+                                root.menu-open = !root.menu-open;
+                            }
+                        }
+                        M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: @image-url("../assets/icons/crop_16_9.svg");
+                            tint: root.theater ? Theme.primary : #ffffff;
+                            clicked => {
+                                if (!root.fullscreen) {
+                                    Player.set-mode(root.theater ? "default" : "theater");
+                                }
+                            }
+                        }
+                        M3IconButton {
+                            width: 48px;
+                            height: 48px;
+                            icon: root.fullscreen ? @image-url("../assets/icons/fullscreen_exit.svg") : @image-url("../assets/icons/fullscreen.svg");
+                            tint: #ffffff;
+                            clicked => {
+                                Player.set-mode(root.fullscreen ? "default" : "fullscreen");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- the details, which slide up over the pinned picture
+        if !root.fullscreen: Flickable {
+            x: root.col-x;
+            width: root.col-w;
+            y: 0;
+            height: root.height;
+            interactive: false;
+            content-height: details.preferred-height;
+            details := VerticalLayout {
+                // The picture's own height, left clear.
+                Rectangle {
+                    height: root.box-y + root.box-h;
+                }
+                Rectangle {
+                    background: root.ground;
+                    VerticalLayout {
+                        padding-left: root.gutter;
+                        padding-right: root.gutter;
+                        padding-top: 18px;
+                        padding-bottom: 56px;
+                        spacing: 18px;
+                        // How it's being played.
+                        HorizontalLayout {
+                            spacing: 14px;
+                            alignment: start;
+                            Text {
+                                text: Player.method;
+                                color: Player.transcoding ? Theme.error : Theme.good;
+                                font-family: Theme.font;
+                                font-size: 13px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                            if Player.readout != "": Text {
+                                text: Player.readout;
+                                color: Theme.on-surface-variant;
+                                font-family: Theme.font;
+                                font-size: 13px;
+                                vertical-alignment: center;
+                            }
+                            if Player.decoder-text != "": Text {
+                                text: Player.decoder-text;
+                                color: Theme.on-surface-variant;
+                                font-family: Theme.font;
+                                font-size: 13px;
+                                vertical-alignment: center;
+                            }
+                        }
+                        VerticalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: Player.heading;
+                                color: Theme.on-surface;
+                                font-family: Theme.font;
+                                font-size: 28px;
+                                wrap: word-wrap;
+                            }
+                            MetaLine {
+                                parts: Player.meta;
+                                tag: Player.rating;
+                                font-size: 13.5px;
+                            }
+                            HorizontalLayout {
+                                spacing: 16px;
+                                alignment: start;
+                                if Player.has-owner: Surface {
+                                    height: 52px;
+                                    width: owner-row.preferred-width + 24px;
+                                    border-radius: 12px;
+                                    clicked => {
+                                        Player.open-owner();
+                                    }
+                                    owner-row := HorizontalLayout {
+                                        padding-left: 6px;
+                                        padding-right: 12px;
+                                        spacing: 10px;
+                                        Rectangle {
+                                            width: 40px;
+                                            height: 40px;
+                                            y: (parent.height - self.height) / 2;
+                                            border-radius: 8px;
+                                            clip: true;
+                                            background: Theme.surface-container-high;
+                                            if Player.owner-has-image: Image {
+                                                source: Player.owner-image;
+                                                width: parent.width;
+                                                height: parent.height;
+                                                image-fit: cover;
+                                            }
+                                        }
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Text {
+                                                text: Player.owner-name;
+                                                color: Theme.on-surface;
+                                                font-family: Theme.font;
+                                                font-size: 14px;
+                                                font-weight: 500;
+                                            }
+                                            if Player.owner-sub != "": Text {
+                                                text: Player.owner-sub;
+                                                color: Theme.on-surface-variant;
+                                                font-family: Theme.font;
+                                                font-size: 12px;
+                                            }
+                                        }
+                                    }
+                                }
+                                if !Player.is-trailer: HorizontalLayout {
+                                    spacing: 10px;
+                                    M3Button {
+                                        text: Player.played ? "Watched" : "Mark watched";
+                                        kind: ButtonKind.tonal;
+                                        selected: Player.played;
+                                        icon: @image-url("../assets/icons/check.svg");
+                                        y: (parent.height - self.height) / 2;
+                                        clicked => {
+                                            Player.toggle-played();
+                                        }
+                                    }
+                                    M3Button {
+                                        text: Player.favorite ? "Favorited" : "Favorite";
+                                        kind: ButtonKind.tonal;
+                                        selected: Player.favorite;
+                                        icon: Player.favorite ? @image-url("../assets/icons/favorite-fill.svg") : @image-url("../assets/icons/favorite.svg");
+                                        y: (parent.height - self.height) / 2;
+                                        clicked => {
+                                            Player.toggle-favorite();
+                                        }
+                                    }
+                                    M3Button {
+                                        text: Player.download-label;
+                                        kind: ButtonKind.tonal;
+                                        selected: Player.download-status == "done";
+                                        icon: Player.download-status == "done" ? @image-url("../assets/icons/check.svg") : @image-url("../assets/icons/download.svg");
+                                        y: (parent.height - self.height) / 2;
+                                        clicked => {
+                                            Player.download();
+                                        }
+                                    }
+                                }
+                            }
+                            if Player.action-error != "": Text {
+                                text: Player.action-error;
+                                color: Theme.error;
+                                font-family: Theme.font;
+                                font-size: 13px;
+                                wrap: word-wrap;
+                            }
+                        }
+                        if !Player.is-trailer && (Player.overview != "" || Player.media.length > 0): Rectangle {
+                            border-radius: 20px;
+                            background: Theme.surface-container-low;
+                            height: media-col.preferred-height + 40px;
+                            media-col := VerticalLayout {
+                                padding: 20px;
+                                spacing: 12px;
+                                Text {
+                                    text: "Media info";
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 18px;
+                                }
+                                if Player.overview != "": Text {
+                                    text: Player.overview;
+                                    color: Theme.on-surface-variant;
+                                    font-family: Theme.font;
+                                    font-size: 14px;
+                                    wrap: word-wrap;
+                                }
+                                if Player.media.length > 0: FactGrid {
+                                    facts: Player.media;
+                                }
+                            }
+                        }
+                        if Player.cast.length > 0: Rectangle {
+                            border-radius: 20px;
+                            background: Theme.surface-container-low;
+                            height: 148px + 80px;
+                            VerticalLayout {
+                                padding: 20px;
+                                spacing: 12px;
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    alignment: start;
+                                    Text {
+                                        text: "Cast";
+                                        color: Theme.on-surface;
+                                        font-family: Theme.font;
+                                        font-size: 18px;
+                                    }
+                                    Text {
+                                        text: Player.cast.length == 1 ? "1 person" : Player.cast.length + " people";
+                                        color: Theme.on-surface-variant;
+                                        font-family: Theme.font;
+                                        font-size: 13px;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                Flickable {
+                                    height: 148px;
+                                    content-width: Player.cast.length * 112px;
+                                    for person[i] in Player.cast: PersonCard {
+                                        x: i * 112px;
+                                        data: person;
+                                        clicked => {
+                                            Player.open-person(person.id, person.name);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // With no room beside the picture, the list goes here.
+                        if !root.side-by-side && Player.queue.length > 0: Rectangle {
+                            border-radius: 20px;
+                            background: Theme.surface-container-low;
+                            height: queue-col.preferred-height + 40px;
+                            queue-col := VerticalLayout {
+                                padding: 20px;
+                                spacing: 8px;
+                                Text {
+                                    text: Player.queue-heading;
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 18px;
+                                }
+                                for entry in Player.queue: QueueRow {
+                                    data: entry;
+                                    play => {
+                                        Player.queue-play(entry.id);
+                                    }
+                                    toggle-played => {
+                                        Player.queue-toggle-played(entry.id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- the list beside the picture
+        if root.side-by-side: Rectangle {
+            x: root.col-x + root.col-w;
+            y: 0;
+            width: root.side-w;
+            height: root.height;
+            background: root.ground;
+            side-fl := Flickable {
+                content-height: side-col.preferred-height;
+                // The playing entry is scrolled to the middle when the list arrives.
+                property <int> current: Player.queue-current;
+                changed current => {
+                    if (self.current >= 0) {
+                        self.content-y = -max(0px, min(self.content-height - self.height, 90px + self.current * 100px - (self.height - 90px) / 2));
+                    }
+                }
+                side-col := VerticalLayout {
+                    padding-left: 4px;
+                    padding-right: root.gutter;
+                    padding-top: 16px;
+                    padding-bottom: 40px;
+                    spacing: 10px;
+                    VerticalLayout {
+                        spacing: 4px;
+                        if Player.queue-seasons.length > 1: SelectField {
+                            options: Player.queue-seasons;
+                            selected: Player.queue-season-index;
+                            min-width: 0px;
+                            picked(i) => {
+                                Player.queue-season(i);
+                            }
+                        }
+                        if Player.queue-seasons.length <= 1: Text {
+                            text: Player.queue-heading;
+                            color: Theme.on-surface;
+                            font-family: Theme.font;
+                            font-size: 20px;
+                        }
+                        if Player.queue-eyebrow != "": Text {
+                            text: Player.queue-eyebrow;
+                            color: Theme.on-surface-variant;
+                            font-family: Theme.font;
+                            font-size: 13px;
+                            overflow: elide;
+                        }
+                    }
+                    if Player.queue-loading: VerticalLayout {
+                        spacing: 8px;
+                        for i in 4: Rectangle {
+                            height: 90px;
+                            border-radius: 12px;
+                            background: Theme.surface-container;
+                        }
+                    }
+                    if !Player.queue-loading && Player.queue.length == 0: Text {
+                        text: Player.queue-empty;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        wrap: word-wrap;
+                    }
+                    for entry in Player.queue: QueueRow {
+                        data: entry;
+                        art-width: 132px;
+                        play => {
+                            Player.queue-play(entry.id);
+                        }
+                        toggle-played => {
+                            Player.queue-toggle-played(entry.id);
+                        }
+                    }
+                    if Player.queue-next-name != "": VerticalLayout {
+                        spacing: 8px;
+                        padding-top: 8px;
+                        HorizontalLayout {
+                            Text {
+                                text: Player.queue-next-name;
+                                color: Theme.on-surface-variant;
+                                font-family: Theme.font;
+                                font-size: 13px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                                horizontal-alignment: left;
+                            }
+                            M3Button {
+                                text: "All of " + Player.queue-next-name;
+                                kind: ButtonKind.text;
+                                clicked => {
+                                    Player.queue-next-season();
+                                }
+                            }
+                        }
+                        for entry in Player.queue-next: QueueRow {
+                            data: entry;
+                            art-width: 132px;
+                            play => {
+                                Player.queue-play(entry.id);
+                            }
+                            toggle-played => {
+                                Player.queue-toggle-played(entry.id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

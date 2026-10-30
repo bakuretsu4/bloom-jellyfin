@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.bloom.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Bloom</name>
+  <summary>A desktop client for Jellyfin</summary>
+  <description>
+    <p>Bloom plays the films, shows and music on your Jellyfin server in a native window, decoding
+    video on your graphics card through mpv. It has a full player, downloads that play with no
+    server, several servers and accounts, custom themes and a command palette.</p>
+    <p>Bloom is not affiliated with or endorsed by the Jellyfin project.</p>
+  </description>
+  <launchable type="desktop-id">dev.bloom.app.desktop</launchable>
+  <provides>
+    <binary>bloom</binary>
+  </provides>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+    <category>Player</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.2.0"/>
+  </releases>
+</component>

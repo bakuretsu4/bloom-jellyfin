@@ -1,0 +1,147 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Music } from "music.slint";
+import { M3Button, ButtonKind, Page } from "m3.slint";
+import { CardData, CardGrid } from "cards.slint";
+
+export component SearchScreen inherits Page {
+    in property <string> query;
+    in property <[CardData]> cards;
+    // Albums, artists and songs that matched.
+    in property <[CardData]> music-cards;
+    in property <bool> loading;
+    in property <string> error;
+    // "First 60", "3 results"
+    in property <string> eyebrow;
+    callback activate(string, string, string);
+    callback retry();
+    callback clear();
+
+    Flickable {
+        content-height: col.preferred-height + 48px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        col := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 16px;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 14px;
+                alignment: start;
+                Text {
+                    text: "Results for \u{201c}" + root.query + "\u{201d}";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 32px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.eyebrow != "": Text {
+                    text: root.eyebrow;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                }
+            }
+            if root.error != "": VerticalLayout {
+                padding-top: 24px;
+                spacing: 10px;
+                Text {
+                    text: "Search didn't work";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                }
+                Text {
+                    text: root.error;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    M3Button {
+                        text: "Try again";
+                        kind: ButtonKind.tonal;
+                        clicked => {
+                            root.retry();
+                        }
+                    }
+                }
+            }
+            if root.loading && root.cards.length == 0 && root.music-cards.length == 0: HorizontalLayout {
+                spacing: 20px;
+                alignment: start;
+                for i in 6: Rectangle {
+                    width: 220px;
+                    height: 330px;
+                    border-radius: 16px;
+                    background: Theme.surface-container;
+                }
+            }
+            CardGrid {
+                cards: root.cards;
+                opacity: root.loading ? 0.6 : 1.0;
+                activate(id, kind, name) => {
+                    root.activate(id, kind, name);
+                }
+            }
+            if root.music-cards.length > 0: VerticalLayout {
+                spacing: 12px;
+                if root.cards.length > 0: Text {
+                    text: "Music";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                    height: 44px;
+                    vertical-alignment: center;
+                }
+                CardGrid {
+                    square: true;
+                    cards: root.music-cards;
+                    activate(id, kind, name) => {
+                        root.activate(id, kind, name);
+                    }
+                }
+            }
+            if !root.loading && root.error == "" && root.cards.length == 0 && root.music-cards.length == 0: VerticalLayout {
+                padding-top: 24px;
+                spacing: 8px;
+                Text {
+                    text: "No matches";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                }
+                Text {
+                    text: "Nothing in your libraries is called \u{201c}" + root.query + "\u{201d}. Check the spelling, or search for a film, show or episode title.";
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    M3Button {
+                        text: "Clear search";
+                        kind: ButtonKind.tonal;
+                        clicked => {
+                            root.clear();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

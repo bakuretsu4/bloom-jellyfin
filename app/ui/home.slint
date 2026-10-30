@@ -1,0 +1,372 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Music } from "music.slint";
+import { M3Button, M3IconButton, MetaLine, MetaPart, ButtonKind, Page, Skeleton } from "m3.slint";
+import { CardData, SectionData, CardRail } from "cards.slint";
+
+// One slide of the spotlight.
+export struct SpotlightData {
+    id: string,
+    title: string,
+    // The score, year, length (or seasons), and when it would end if started now.
+    meta: [MetaPart],
+    rating: string,
+    genres: string,
+    overview: string,
+    favorite: bool,
+    backdrop: image,
+    has-backdrop: bool,
+    logo: image,
+    has-logo: bool,
+}
+
+// Steps in a slide's dwell: one every 300 ms, so 9 seconds.
+global Dwell {
+    out property <int> steps: 30;
+}
+
+component Spotlight inherits Rectangle {
+    in property <[SpotlightData]> items;
+    in-out property <int> index;
+    in-out property <int> step;
+    // Scrolled out of sight: nothing is watching, so nothing advances.
+    in property <bool> in-view: true;
+    callback open(string);
+    callback play(string);
+    callback favorite(string);
+
+    property <bool> auto: root.items.length > 1 && !Theme.reduce-motion;
+    property <bool> pointer-on: slide-ta.has-hover;
+    in property <length> slide-height: 450px;
+    height: root.slide-height;
+    border-radius: 28px;
+    clip: true;
+    // The page's own colour, so the picture dissolves into the page on the left and at the foot
+    // instead of ending in a visible box.
+    background: Theme.surface;
+
+    function go(to: int) {
+        root.index = mod(to + root.items.length, root.items.length);
+        root.step = 0;
+    }
+
+    Timer {
+        interval: 300ms;
+        running: root.auto && root.in-view && !root.pointer-on;
+        triggered => {
+            if (root.step + 1 >= Dwell.steps) {
+                root.go(root.index + 1);
+            } else {
+                root.step += 1;
+            }
+        }
+    }
+
+    // Backdrops cross-fade; only this one and its neighbours are ever shown.
+    for item[i] in root.items: Rectangle {
+        opacity: i == root.index ? 1.0 : 0.0;
+        animate opacity { duration: Theme.reduce-motion ? 0ms : 600ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        if item.has-backdrop: Image {
+            source: item.backdrop;
+            width: parent.width;
+            height: parent.height;
+            image-fit: cover;
+        }
+    }
+    Rectangle {
+        background: @linear-gradient(90deg, Theme.surface 0%, Theme.surface.with-alpha(0.88) 28%, Theme.surface.with-alpha(0.34) 56%, Theme.surface.with-alpha(0.0) 82%);
+    }
+    Rectangle {
+        background: @linear-gradient(0deg, Theme.surface 0%, Theme.surface.with-alpha(0.7) 20%, Theme.surface.with-alpha(0.0) 52%);
+    }
+    // Pressing anywhere but a button opens the title.
+    slide-ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.open(root.items[root.index].id);
+        }
+    }
+    for item[i] in root.items: VerticalLayout {
+        padding-left: 40px;
+        padding-right: 40px;
+        padding-bottom: 40px;
+        padding-top: 40px;
+        spacing: 12px;
+        alignment: end;
+        x: 0px;
+        // The text of the one coming up rises into place as it fades in.
+        y: i == root.index || Theme.reduce-motion ? 0px : 14px;
+        width: min(700px, root.width);
+        height: root.height;
+        opacity: i == root.index ? 1.0 : 0.0;
+        visible: self.opacity > 0.01;
+        animate opacity { duration: Theme.reduce-motion ? 0ms : 400ms; delay: i == root.index && !Theme.reduce-motion ? 120ms : 0ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+        animate y { duration: Theme.reduce-motion ? 0ms : 400ms; delay: i == root.index && !Theme.reduce-motion ? 120ms : 0ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+        if item.has-logo: Image {
+            source: item.logo;
+            height: 120px;
+            width: 420px;
+            image-fit: contain;
+            horizontal-alignment: left;
+        }
+        if !item.has-logo: Text {
+            text: item.title;
+            color: Theme.on-surface;
+            font-family: Theme.font;
+            font-size: 52px;
+            wrap: word-wrap;
+        }
+        MetaLine {
+            parts: item.meta;
+            tag: item.rating;
+            ink: Theme.on-surface;
+            font-size: 14px;
+        }
+        if item.genres != "": Text {
+            text: item.genres;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 14px;
+        }
+        Text {
+            text: item.overview;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 14px;
+            wrap: word-wrap;
+            max-height: 66px;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            M3Button {
+                text: "Play";
+                icon: @image-url("../assets/icons/play_arrow.svg");
+                clicked => {
+                    root.play(item.id);
+                }
+            }
+            M3Button {
+                text: item.favorite ? "Favorited" : "Favorite";
+                kind: ButtonKind.tonal;
+                selected: item.favorite;
+                icon: item.favorite ? @image-url("../assets/icons/favorite-fill.svg") : @image-url("../assets/icons/favorite.svg");
+                clicked => {
+                    root.favorite(item.id);
+                }
+            }
+        }
+    }
+    // The page indicator: previous and next, and a bar to a slide (finished ones solid, the current
+    // one filling as the slide runs, the rest faint), the way Material 3's linear progress
+    // indicator draws a track and its fill, under "2 of 6".
+    if root.items.length > 1: Rectangle {
+        height: 60px;
+        width: pager-row.preferred-width + 16px;
+        x: root.width - self.width - 24px;
+        y: root.height - self.height - 20px;
+        border-radius: 30px;
+        background: Theme.surface-container.with-alpha(0.78);
+        pager-row := HorizontalLayout {
+            x: 8px;
+            y: 0;
+            height: parent.height;
+            spacing: 4px;
+            M3IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: @image-url("../assets/icons/chevron_left.svg");
+                clicked => {
+                    root.go(root.index == 0 ? root.items.length - 1 : root.index - 1);
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 7px;
+                Text {
+                    text: (root.index + 1) + " of " + root.items.length;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    font-weight: 500;
+                    horizontal-alignment: center;
+                }
+                HorizontalLayout {
+                    spacing: 5px;
+                    for item[i] in root.items: Rectangle {
+                        width: 26px;
+                        height: 16px;
+                        Rectangle {
+                            width: parent.width;
+                            height: 4px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 2px;
+                            background: Theme.on-surface.with-alpha(i < root.index ? 0.85 : 0.26);
+                            clip: true;
+                            Rectangle {
+                                x: 0;
+                                width: i == root.index ? (root.auto ? parent.width * root.step / Dwell.steps : parent.width) : 0px;
+                                background: Theme.primary;
+                            }
+                        }
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                root.go(i);
+                            }
+                        }
+                    }
+                }
+            }
+            M3IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: @image-url("../assets/icons/chevron_right.svg");
+                clicked => {
+                    root.go(root.index + 1 == root.items.length ? 0 : root.index + 1);
+                }
+            }
+        }
+    }
+}
+
+component SkeletonRow inherits VerticalLayout {
+    in property <bool> wide;
+    spacing: 12px;
+    Skeleton {
+        height: 24px;
+        width: 140px;
+        border-radius: 12px;
+    }
+    HorizontalLayout {
+        spacing: 16px;
+        alignment: start;
+        for i in 9: Skeleton {
+            width: root.wide ? 360px : 240px;
+            height: root.wide ? 203px : 360px;
+            border-radius: 16px;
+        }
+    }
+}
+
+export component HomeScreen inherits Page {
+    in property <[SectionData]> sections;
+    in property <[SpotlightData]> spotlights;
+    in-out property <int> spot-index;
+    in-out property <int> spot-step;
+    // The sections are still being asked for; the spotlight is, too.
+    in property <bool> loading;
+    in property <bool> spotlight-loading;
+    // Couldn't load: what the server (or the network) said.
+    in property <string> error;
+    // Loaded and there's nothing in them.
+    in property <bool> empty;
+    // A card or the spotlight was pressed: the item's id and Jellyfin type.
+    callback activate(string, string, string);
+    callback open-title(string);
+    callback play(string);
+    callback favorite(string);
+    callback retry();
+
+    fl := Flickable {
+        content-height: page.preferred-height + 24px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        page := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 24px;
+            alignment: start;
+            // The spotlight's place is held while it loads, so the rows don't jump down.
+            if root.spotlight-loading && root.error == "": Rectangle {
+                height: max(360px, min(580px, root.height * 0.54));
+                border-radius: 28px;
+                background: Theme.surface-container;
+            }
+            if root.spotlights.length > 0 && root.error == "": Spotlight {
+                items: root.spotlights;
+                index <=> root.spot-index;
+                step <=> root.spot-step;
+                slide-height: max(360px, min(580px, root.height * 0.54));
+                in-view: -fl.content-y < 500px;
+                open(id) => {
+                    root.open-title(id);
+                }
+                play(id) => {
+                    root.play(id);
+                }
+                favorite(id) => {
+                    root.favorite(id);
+                }
+            }
+            if root.error != "": VerticalLayout {
+                padding-top: 48px;
+                spacing: 12px;
+                Text {
+                    text: "Couldn't load your home screen";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 24px;
+                }
+                Text {
+                    text: root.error;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    M3Button {
+                        text: root.loading ? "Trying again" : "Try again";
+                        kind: ButtonKind.tonal;
+                        clicked => {
+                            root.retry();
+                        }
+                    }
+                }
+            }
+            if root.loading && root.sections.length == 0 && root.error == "": VerticalLayout {
+                spacing: 24px;
+                SkeletonRow {
+                    wide: true;
+                }
+                SkeletonRow { }
+                SkeletonRow { }
+            }
+            if root.empty && root.error == "": VerticalLayout {
+                padding-top: 48px;
+                spacing: 8px;
+                Text {
+                    text: "Nothing here yet";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 24px;
+                }
+                Text {
+                    text: "This account can't see any libraries. An administrator can give it access in the Jellyfin dashboard, under Users.";
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+            }
+            for section in root.sections: CardRail {
+                heading: section.title;
+                cards: section.cards;
+                wide: section.wide;
+                square: section.square;
+                activate(id, kind, name) => {
+                    root.activate(id, kind, name);
+                }
+            }
+        }
+    }
+}

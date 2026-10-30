@@ -1,0 +1,435 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Surface, M3Button, M3IconButton, ButtonKind, Page } from "m3.slint";
+import { CardData, CardGrid } from "cards.slint";
+
+// One song on an album's or an artist's page.
+export struct SongData {
+    id: string,
+    // Its place on the album, or empty.
+    number: string,
+    title: string,
+    // Who plays it (on an album), or the album it is on (on an artist's page).
+    subtitle: string,
+    duration: string,
+    image: image,
+    has-image: bool,
+}
+
+// What the music pages show, and what the player at the bottom of the window shows.
+export global Music {
+    // ---- the album or artist page
+    in-out property <string> kind-label;
+    in-out property <string> title;
+    in-out property <string> subtitle;
+    // "2021, 12 songs, 48 min".
+    in-out property <string> meta;
+    in-out property <string> overview;
+    in-out property <string> initial;
+    in-out property <image> image;
+    in-out property <bool> has-image;
+    // An artist's picture is round.
+    in-out property <bool> round;
+    // The subtitle names an artist whose page it opens.
+    in-out property <bool> artist-link;
+    in-out property <[SongData]> songs;
+    in-out property <string> songs-heading;
+    in-out property <[CardData]> albums;
+    in-out property <bool> loading;
+    in-out property <string> error;
+    // ---- what is playing
+    in-out property <bool> active;
+    in-out property <string> playing-id;
+    in-out property <string> now-title;
+    in-out property <string> now-artist;
+    in-out property <image> now-image;
+    in-out property <bool> now-has-image;
+    in-out property <bool> has-prev;
+    in-out property <bool> has-next;
+    // Room the player at the bottom takes from the pages above it.
+    out property <length> inset: self.active ? 96px : 0px;
+    callback play-all(bool);
+    callback play-song(int);
+    callback open-artist();
+    // Open the album of the song that is playing.
+    callback open-playing();
+    callback step(int);
+    callback stop();
+    callback toggle();
+}
+
+component SongRow inherits Surface {
+    in property <SongData> song;
+    in property <bool> playing;
+    in property <bool> paused;
+    height: 56px;
+    border-radius: 12px;
+    background: root.playing ? Theme.secondary-container : transparent;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 16px;
+        spacing: 14px;
+        Rectangle {
+            width: song.has-image ? 44px : 32px;
+            if root.song.has-image: Rectangle {
+                x: 0;
+                y: (parent.height - self.height) / 2;
+                width: 44px;
+                height: 44px;
+                border-radius: 8px;
+                clip: true;
+                Image {
+                    x: 0;
+                    y: 0;
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.song.image;
+                    image-fit: cover;
+                }
+            }
+            if !root.song.has-image && !root.playing: Text {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                height: parent.height;
+                text: root.song.number;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            if !root.song.has-image && root.playing: Image {
+                x: 4px;
+                y: (parent.height - self.height) / 2;
+                width: 24px;
+                height: 24px;
+                source: root.paused ? @image-url("../assets/icons/pause.svg") : @image-url("../assets/icons/volume_up.svg");
+                colorize: Theme.on-secondary-container;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.song.title;
+                color: root.playing ? Theme.on-secondary-container : Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 15px;
+                font-weight: root.playing ? 700 : 400;
+                overflow: elide;
+            }
+            if root.song.subtitle != "": Text {
+                text: root.song.subtitle;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+        Text {
+            text: root.song.duration;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 13px;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// An album's page (its songs) or an artist's (their songs and albums).
+export component MusicScreen inherits Page {
+    in property <bool> paused;
+    callback activate(string, string, string);
+
+    Flickable {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        content-height: col.preferred-height + 48px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        col := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 20px;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 28px;
+                Rectangle {
+                    width: 220px;
+                    height: 220px;
+                    border-radius: Music.round ? 110px : 16px;
+                    clip: true;
+                    background: Theme.surface-container-highest;
+                    Text {
+                        text: Music.initial;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 64px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    if Music.has-image: Image {
+                        x: 0;
+                        y: 0;
+                        width: parent.width;
+                        height: parent.height;
+                        source: Music.image;
+                        image-fit: cover;
+                    }
+                }
+                VerticalLayout {
+                    spacing: 10px;
+                    alignment: end;
+                    Text {
+                        text: Music.kind-label;
+                        color: Theme.primary;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        font-weight: 500;
+                    }
+                    Text {
+                        text: Music.title;
+                        color: Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 40px;
+                        wrap: word-wrap;
+                    }
+                    if Music.subtitle != "": Rectangle {
+                        height: sub.preferred-height;
+                        sub := Text {
+                            x: 0;
+                            width: parent.width;
+                            text: Music.subtitle;
+                            color: Music.artist-link ? Theme.primary : Theme.on-surface-variant;
+                            font-family: Theme.font;
+                            font-size: 15px;
+                            font-weight: Music.artist-link ? 500 : 400;
+                            overflow: elide;
+                        }
+                        if Music.artist-link: TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                Music.open-artist();
+                            }
+                        }
+                    }
+                    if Music.meta != "": Text {
+                        text: Music.meta;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                    }
+                    if Music.songs.length > 0: HorizontalLayout {
+                        spacing: 12px;
+                        alignment: start;
+                        M3Button {
+                            text: "Play";
+                            icon: @image-url("../assets/icons/play_arrow.svg");
+                            clicked => {
+                                Music.play-all(false);
+                            }
+                        }
+                        M3Button {
+                            text: "Shuffle";
+                            kind: ButtonKind.tonal;
+                            clicked => {
+                                Music.play-all(true);
+                            }
+                        }
+                    }
+                }
+            }
+            if Music.overview != "": Text {
+                text: Music.overview;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 15px;
+                wrap: word-wrap;
+                max-width: 900px;
+            }
+            if Music.error != "": Text {
+                text: Music.error;
+                color: Theme.error;
+                font-family: Theme.font;
+                font-size: 15px;
+                wrap: word-wrap;
+            }
+            if Music.loading: Text {
+                text: "Loading\u{2026}";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+            }
+            if Music.songs.length > 0: VerticalLayout {
+                spacing: 2px;
+                if Music.songs-heading != "": Text {
+                    text: Music.songs-heading;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                    height: 44px;
+                    vertical-alignment: center;
+                }
+                for song[i] in Music.songs: Rectangle {
+                    height: 56px;
+                    max-width: 900px;
+                    SongRow {
+                        x: 0;
+                        y: 0;
+                        width: parent.width;
+                        height: parent.height;
+                        song: song;
+                        playing: Music.active && Music.playing-id == song.id;
+                        paused: root.paused;
+                        clicked => {
+                            Music.play-song(i);
+                        }
+                    }
+                }
+            }
+            if Music.albums.length > 0: VerticalLayout {
+                spacing: 12px;
+                Text {
+                    text: "Albums";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                    height: 44px;
+                    vertical-alignment: center;
+                }
+                CardGrid {
+                    square: true;
+                    cards: Music.albums;
+                    activate(id, kind, name) => {
+                        root.activate(id, kind, name);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// What plays, at the bottom of whichever page is open: the song, the controls, how far along.
+export component MiniPlayer inherits Rectangle {
+    in property <float> position;
+    in property <float> duration;
+    in property <bool> paused;
+    // Press the song to open the album it is on.
+    callback open();
+    height: 72px;
+    border-radius: 20px;
+    background: Theme.surface-container-high;
+    drop-shadow-blur: 16px;
+    drop-shadow-color: #00000066;
+    drop-shadow-offset-y: 4px;
+    clip: false;
+
+    // How far along, as a thin line along the bottom.
+    Rectangle {
+        x: 20px;
+        y: parent.height - 6px;
+        width: parent.width - 40px;
+        height: 3px;
+        border-radius: 1.5px;
+        background: Theme.surface-container-highest;
+        Rectangle {
+            x: 0;
+            width: root.duration > 0 ? parent.width * min(1.0, root.position / root.duration) : 0px;
+            border-radius: 1.5px;
+            background: Theme.primary;
+        }
+    }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 8px;
+        padding-top: 8px;
+        padding-bottom: 10px;
+        spacing: 12px;
+        Surface {
+            width: 52px;
+            border-radius: 10px;
+            background: Theme.surface-container-highest;
+            clicked => {
+                root.open();
+            }
+            if Music.now-has-image: Image {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                height: parent.height;
+                source: Music.now-image;
+                image-fit: cover;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            horizontal-stretch: 1;
+            Text {
+                text: Music.now-title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 15px;
+                font-weight: 500;
+                overflow: elide;
+            }
+            Text {
+                text: Music.now-artist;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+        HorizontalLayout {
+            spacing: 0px;
+            alignment: end;
+            M3IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: @image-url("../assets/icons/skip_previous.svg");
+                opacity: Music.has-prev ? 1.0 : 0.38;
+                clicked => {
+                    if (Music.has-prev) {
+                        Music.step(-1);
+                    }
+                }
+            }
+            M3IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: root.paused ? @image-url("../assets/icons/play_arrow.svg") : @image-url("../assets/icons/pause.svg");
+                clicked => {
+                    Music.toggle();
+                }
+            }
+            M3IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: @image-url("../assets/icons/skip_next.svg");
+                opacity: Music.has-next ? 1.0 : 0.38;
+                clicked => {
+                    if (Music.has-next) {
+                        Music.step(1);
+                    }
+                }
+            }
+            M3IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: @image-url("../assets/icons/close.svg");
+                clicked => {
+                    Music.stop();
+                }
+            }
+        }
+    }
+}

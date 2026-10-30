@@ -1,0 +1,19 @@
+/* GitHub Dark for Bloom.
+   Palette: GitHub Primer, primer.style (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #0d1117;
+  --surface: #161b22;
+  --surface-2: #252a31;
+  --raise: #2b3037;
+  --line: #40454c;
+  --line-soft: #2b3037;
+  --ink: #e6edf3;
+  --ink-2: #a5abb1;
+  --ink-3: #8b9197;
+  --accent: #4493f8;
+  --accent-ink: #111111;
+  --good: #3fb950;
+  --alert: #f85149;
+}

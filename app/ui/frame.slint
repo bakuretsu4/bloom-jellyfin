@@ -1,0 +1,705 @@
+import { Theme } from "theme.slint";
+import { M3Button, M3IconButton, MenuRow, NavItem, SearchBar, Surface, Avatar, ButtonKind } from "m3.slint";
+
+// Another sign-in on the same server, to switch to.
+// Another server added on this computer, for the server menu.
+export struct ServerItem {
+    id: string,
+    name: string,
+    // "As alyx" or "Sign in"
+    sub: string,
+}
+
+export struct AccountItem {
+    server-id: string,
+    user-id: string,
+    name: string,
+    initial: string,
+    image: image,
+    has-image: bool,
+}
+
+// A title the search box offers while you type.
+export struct SuggestionData {
+    id: string,
+    kind: string,
+    title: string,
+    // "Film", "Show", "Episode", "Video"
+    label: string,
+    initial: string,
+}
+
+// The search field. What it offers is drawn by the frame (`SuggestionList`), over the page: a
+// popup would take the keyboard from the field while you type.
+component SearchBox inherits Rectangle {
+    in-out property <string> text <=> bar.text;
+    callback edited(string);
+    callback accepted(string);
+    callback down();
+    callback up();
+    callback escape();
+    height: 56px;
+    max-width: 560px;
+    public function focus-input() {
+        bar.focus-input();
+    }
+
+    bar := SearchBar {
+        placeholder: "Search films, shows and episodes";
+        edited(t) => {
+            root.edited(t);
+        }
+        accepted(t) => {
+            root.accepted(t);
+        }
+        down => {
+            root.down();
+        }
+        up => {
+            root.up();
+        }
+        escape => {
+            root.escape();
+        }
+    }
+}
+
+component SuggestionList inherits Rectangle {
+    in property <[SuggestionData]> suggestions;
+    // "searching", "none" (nothing matched), "short" (one character), or "list".
+    in property <string> status;
+    in property <int> active;
+    in property <string> query;
+    callback pick(int);
+    callback see-all();
+    height: root.status == "list" ? min(480px, (root.suggestions.length + 1) * 52px + 16px) : 56px;
+    border-radius: 16px;
+    background: Theme.surface-container-high;
+    if root.status != "list": Text {
+        x: 16px;
+        width: parent.width - 32px;
+        height: parent.height;
+        text: root.status == "searching" ? "Searching" : root.status == "short" ? "Keep typing to search" : "Nothing called \u{201c}" + root.query + "\u{201d}";
+        color: Theme.on-surface-variant;
+        font-family: Theme.font;
+        font-size: 14px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    if root.status == "list": VerticalLayout {
+        padding: 8px;
+        for s[i] in root.suggestions: Surface {
+            height: 52px;
+            border-radius: 12px;
+            background: root.active == i ? Theme.secondary-container : transparent;
+            clicked => {
+                root.pick(i);
+            }
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 16px;
+                spacing: 12px;
+                Rectangle {
+                    width: 32px;
+                    height: 32px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 16px;
+                    background: Theme.primary-container;
+                    Text {
+                        text: s.initial;
+                        color: Theme.on-primary-container;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: s.title;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                    horizontal-alignment: left;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                }
+                Text {
+                    text: s.label;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    horizontal-stretch: 0;
+                }
+            }
+        }
+        Surface {
+            height: 52px;
+            border-radius: 12px;
+            background: root.active == root.suggestions.length ? Theme.secondary-container : transparent;
+            clicked => {
+                root.see-all();
+            }
+            Text {
+                x: 12px;
+                width: parent.width - 24px;
+                text: "See all results for \u{201c}" + root.query + "\u{201d}";
+                color: Theme.primary;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 500;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+}
+
+export enum NavTarget { home, libraries, downloads, settings, none }
+
+// What every browsing screen sits in: the navigation rail and the top bar. It stays on screen
+// while the pages inside it change, so a search field keeps its text and focus as results appear.
+export component Frame inherits Rectangle {
+    in property <NavTarget> active: NavTarget.home;
+    in property <string> user-name;
+    // The person's picture, if they have one; else the first letter of the name.
+    in property <image> user-image;
+    in property <bool> has-user-image;
+    in property <string> initial;
+    in property <string> server-name;
+    in-out property <string> search-text;
+    in property <bool> can-go-back;
+    callback go-back();
+    callback go-home();
+    callback go-libraries();
+    callback go-downloads();
+    callback go-settings();
+    callback search-edited(string);
+    callback search-accepted(string);
+    in property <[SuggestionData]> suggestions;
+    in property <string> suggest-status;
+    in property <int> suggest-active;
+    in property <bool> suggest-open;
+    in property <string> suggest-query;
+    // Counts up each time "/" asks for the search field.
+    in property <int> search-focus-tick;
+    changed search-focus-tick => {
+        search-box.focus-input();
+    }
+    callback suggest-down();
+    callback suggest-up();
+    callback suggest-escape();
+    callback suggest-pick(int);
+    callback suggest-see-all();
+    // The account menu: the other accounts saved for this server (filled in when it opens).
+    in property <[AccountItem]> other-accounts;
+    callback account-menu-opened();
+    callback switch-account(string, string);
+    callback add-account();
+    callback go-servers();
+    callback sign-out();
+    callback shortcuts();
+    // The server menu.
+    in property <string> server-line;
+    in property <[ServerItem]> other-servers;
+    callback server-menu-opened();
+    callback open-server(string);
+    // The rail can be hidden to give the page the room.
+    in-out property <bool> rail-collapsed;
+    // A download is moving, so the Downloads item says so.
+    in property <bool> downloading;
+    // The server couldn't be reached at launch (or on retry), and anything else worth saying.
+    in property <bool> offline;
+    in property <bool> has-downloads;
+    in property <string> notice;
+    callback browse-downloads();
+    callback retry-server();
+    callback dismiss-notice();
+    // Watching: the window is clear behind the page so the picture shows through, and the rail and
+    // top bar paint themselves. `bare` is full screen: no rail, no top bar.
+    in property <bool> clear;
+    in property <bool> bare;
+    background: root.clear ? transparent : Theme.surface;
+
+    HorizontalLayout {
+        Rectangle {
+            width: (root.rail-collapsed || root.bare) ? 0px : 80px;
+            clip: true;
+            background: Theme.surface;
+            animate width { duration: Theme.reduce-motion ? 0ms : 250ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+            VerticalLayout {
+                padding-top: 44px;
+                padding-bottom: 12px;
+                spacing: 12px;
+                NavItem {
+                    icon: @image-url("../assets/icons/home.svg");
+                    label: "Home";
+                    active: root.active == NavTarget.home;
+                    clicked => {
+                        root.go-home();
+                    }
+                }
+                NavItem {
+                    icon: @image-url("../assets/icons/movie.svg");
+                    label: "Library";
+                    active: root.active == NavTarget.libraries;
+                    clicked => {
+                        root.go-libraries();
+                    }
+                }
+                NavItem {
+                    icon: @image-url("../assets/icons/download.svg");
+                    label: "Downloads";
+                    active: root.active == NavTarget.downloads;
+                    dot: root.downloading;
+                    clicked => {
+                        root.go-downloads();
+                    }
+                }
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+                NavItem {
+                    icon: @image-url("../assets/icons/info.svg");
+                    label: "Shortcuts";
+                    clicked => {
+                        root.shortcuts();
+                    }
+                }
+                NavItem {
+                    icon: @image-url("../assets/icons/settings.svg");
+                    label: "Settings";
+                    active: root.active == NavTarget.settings;
+                    clicked => {
+                        root.go-settings();
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            Rectangle {
+                height: root.bare ? 0px : 80px;
+                visible: !root.bare;
+                background: Theme.surface;
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 24px;
+                    padding-top: 12px;
+                    padding-bottom: 12px;
+                    spacing: 16px;
+                    Rectangle {
+                        width: 40px;
+                        M3IconButton {
+                            icon: @image-url("../assets/icons/menu.svg");
+                            y: (parent.height - self.height) / 2;
+                            clicked => {
+                                root.rail-collapsed = !root.rail-collapsed;
+                            }
+                        }
+                    }
+                    if root.can-go-back: Rectangle {
+                        width: 40px;
+                        M3IconButton {
+                            icon: @image-url("../assets/icons/arrow_back.svg");
+                            y: (parent.height - self.height) / 2;
+                            clicked => {
+                                root.go-back();
+                            }
+                        }
+                    }
+                    search-box := SearchBox {
+                        text <=> root.search-text;
+                        edited(t) => {
+                            root.search-edited(t);
+                        }
+                        accepted(t) => {
+                            root.search-accepted(t);
+                        }
+                        down => {
+                            root.suggest-down();
+                        }
+                        up => {
+                            root.suggest-up();
+                        }
+                        escape => {
+                            root.suggest-escape();
+                        }
+                    }
+                    Rectangle { }
+                    Rectangle {
+                        width: server-pill.preferred-width;
+                        server-pill := Surface {
+                            y: (parent.height - self.height) / 2;
+                            height: 40px;
+                            border-radius: 20px;
+                            background: Theme.surface-container;
+                            preferred-width: server-row.preferred-width;
+                            clicked => {
+                                root.server-menu-opened();
+                                server-menu.show();
+                            }
+                            server-row := HorizontalLayout {
+                                padding-left: 14px;
+                                padding-right: 8px;
+                                spacing: 8px;
+                                Image {
+                                    source: @image-url("../assets/icons/dns.svg");
+                                    colorize: Theme.on-surface-variant;
+                                    width: 20px;
+                                    height: 20px;
+                                    y: (parent.height - self.height) / 2;
+                                }
+                                Text {
+                                    max-width: 200px;
+                                    text: root.server-name;
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 14px;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+                                Image {
+                                    source: @image-url("../assets/icons/arrow_drop_down.svg");
+                                    colorize: Theme.on-surface-variant;
+                                    width: 24px;
+                                    height: 24px;
+                                    y: (parent.height - self.height) / 2;
+                                }
+                            }
+                        }
+                        server-menu := PopupWindow {
+                            x: parent.width - 320px;
+                            y: 68px;
+                            width: 320px;
+                            height: 16px + 64px + (root.other-servers.length > 0 ? 28px + root.other-servers.length * 56px : 0px) + 8px + 48px;
+                            Rectangle {
+                                border-radius: 16px;
+                                background: Theme.surface-container-high;
+                                VerticalLayout {
+                                    padding: 8px;
+                                    VerticalLayout {
+                                        height: 64px;
+                                        padding: 8px;
+                                        padding-left: 16px;
+                                        alignment: center;
+                                        Text {
+                                            text: root.server-name;
+                                            color: Theme.on-surface;
+                                            font-family: Theme.font;
+                                            font-size: 16px;
+                                            overflow: elide;
+                                        }
+                                        Text {
+                                            text: root.server-line;
+                                            color: Theme.on-surface-variant;
+                                            font-family: Theme.font;
+                                            font-size: 12px;
+                                            overflow: elide;
+                                        }
+                                    }
+                                    if root.other-servers.length > 0: VerticalLayout {
+                                        Text {
+                                            height: 28px;
+                                            text: "Other servers";
+                                            color: Theme.primary;
+                                            font-family: Theme.font;
+                                            font-size: 13px;
+                                            font-weight: 500;
+                                            vertical-alignment: center;
+                                            horizontal-alignment: left;
+                                        }
+                                        for s in root.other-servers: Surface {
+                                            height: 56px;
+                                            border-radius: 12px;
+                                            clicked => {
+                                                server-menu.close();
+                                                root.open-server(s.id);
+                                            }
+                                            VerticalLayout {
+                                                padding-left: 16px;
+                                                alignment: center;
+                                                Text {
+                                                    text: s.name;
+                                                    color: Theme.on-surface;
+                                                    font-family: Theme.font;
+                                                    font-size: 14px;
+                                                    overflow: elide;
+                                                }
+                                                Text {
+                                                    text: s.sub;
+                                                    color: Theme.on-surface-variant;
+                                                    font-family: Theme.font;
+                                                    font-size: 12px;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        height: 8px;
+                                    }
+                                    MenuRow {
+                                        label: "Manage servers";
+                                        clicked => {
+                                            server-menu.close();
+                                            root.go-servers();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Rectangle {
+                        width: account-pill.preferred-width;
+                        account-pill := Surface {
+                            y: (parent.height - self.height) / 2;
+                            height: 40px;
+                            border-radius: 20px;
+                            background: Theme.surface-container;
+                            preferred-width: account-row.preferred-width;
+                            clicked => {
+                                root.account-menu-opened();
+                                account-menu.show();
+                            }
+                            account-row := HorizontalLayout {
+                                padding-left: 4px;
+                                padding-right: 16px;
+                                spacing: 10px;
+                                Avatar {
+                                    width: 32px;
+                                    height: 32px;
+                                    y: (parent.height - self.height) / 2;
+                                    name: root.initial;
+                                    image: root.user-image;
+                                    has-image: root.has-user-image;
+                                }
+                                Text {
+                                    max-width: 160px;
+                                    text: root.user-name;
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 14px;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+                            }
+                        }
+                        account-menu := PopupWindow {
+                            x: parent.width - 288px;
+                            y: 68px;
+                            width: 288px;
+                            height: 16px + 64px + (root.other-accounts.length > 0 ? 28px + root.other-accounts.length * 44px : 0px) + 8px + 176px;
+                            Rectangle {
+                                border-radius: 16px;
+                                background: Theme.surface-container-high;
+                                VerticalLayout {
+                                    padding: 8px;
+                                    HorizontalLayout {
+                                        height: 64px;
+                                        padding: 8px;
+                                        padding-left: 16px;
+                                        spacing: 12px;
+                                        Avatar {
+                                            y: (parent.height - self.height) / 2;
+                                            name: root.initial;
+                                            image: root.user-image;
+                                            has-image: root.has-user-image;
+                                        }
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Text {
+                                                text: root.user-name;
+                                                color: Theme.on-surface;
+                                                font-family: Theme.font;
+                                                font-size: 16px;
+                                                overflow: elide;
+                                            }
+                                            Text {
+                                                text: "Signed in on " + root.server-name;
+                                                color: Theme.on-surface-variant;
+                                                font-family: Theme.font;
+                                                font-size: 12px;
+                                                overflow: elide;
+                                            }
+                                        }
+                                    }
+                                    if root.other-accounts.length > 0: VerticalLayout {
+                                        Text {
+                                            height: 28px;
+                                            text: "Switch to";
+                                            color: Theme.primary;
+                                            font-family: Theme.font;
+                                            font-size: 13px;
+                                            font-weight: 500;
+                                            vertical-alignment: center;
+                                            horizontal-alignment: left;
+                                        }
+                                        for other in root.other-accounts: Surface {
+                                            height: 44px;
+                                            border-radius: 12px;
+                                            clicked => {
+                                                root.switch-account(other.server-id, other.user-id);
+                                                account-menu.close();
+                                            }
+                                            HorizontalLayout {
+                                                padding-left: 12px;
+                                                padding-right: 12px;
+                                                spacing: 12px;
+                                                Avatar {
+                                                    width: 32px;
+                                                    height: 32px;
+                                                    y: (parent.height - self.height) / 2;
+                                                    name: other.initial;
+                                                    image: other.image;
+                                                    has-image: other.has-image;
+                                                }
+                                                Text {
+                                                    text: other.name;
+                                                    color: Theme.on-surface;
+                                                    font-family: Theme.font;
+                                                    font-size: 14px;
+                                                    vertical-alignment: center;
+                                                    overflow: elide;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        height: 8px;
+                                    }
+                                    MenuRow {
+                                        label: "Keyboard shortcuts";
+                                        clicked => {
+                                            account-menu.close();
+                                            root.shortcuts();
+                                        }
+                                    }
+                                    MenuRow {
+                                        label: "Add another account";
+                                        clicked => {
+                                            account-menu.close();
+                                            root.add-account();
+                                        }
+                                    }
+                                    MenuRow {
+                                        label: "Servers";
+                                        clicked => {
+                                            account-menu.close();
+                                            root.go-servers();
+                                        }
+                                    }
+                                    MenuRow {
+                                        label: "Sign out";
+                                        clicked => {
+                                            account-menu.close();
+                                            root.sign-out();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if root.offline: HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 24px;
+                height: 56px;
+                Rectangle {
+                height: 56px;
+                background: Theme.secondary-container;
+                border-radius: 16px;
+                HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    Text {
+                        text: "Can't reach " + root.server-name + ". Pages and artwork you've already opened may still show" + (root.has-downloads ? ", and everything downloaded still plays." : ".");
+                        color: Theme.on-secondary-container;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                        horizontal-alignment: left;
+                        horizontal-stretch: 1;
+                        overflow: elide;
+                    }
+                    if root.has-downloads: M3Button {
+                        text: "Browse downloads";
+                        kind: ButtonKind.text;
+                        y: (parent.height - self.height) / 2;
+                        clicked => {
+                            root.browse-downloads();
+                        }
+                    }
+                    M3Button {
+                        text: "Retry";
+                        kind: ButtonKind.text;
+                        y: (parent.height - self.height) / 2;
+                        clicked => {
+                            root.retry-server();
+                        }
+                    }
+                }
+                }
+            }
+            if root.notice != "": HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 24px;
+                height: 56px;
+                Rectangle {
+                height: 56px;
+                background: Theme.error-container;
+                border-radius: 16px;
+                HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    Text {
+                        text: root.notice;
+                        color: Theme.on-error-container;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                        horizontal-alignment: left;
+                        horizontal-stretch: 1;
+                        overflow: elide;
+                    }
+                    M3Button {
+                        text: "Dismiss";
+                        kind: ButtonKind.text;
+                        y: (parent.height - self.height) / 2;
+                        clicked => {
+                            root.dismiss-notice();
+                        }
+                    }
+                }
+                }
+            }
+            Rectangle {
+                @children
+            }
+        }
+    }
+    // What the search field offers, over the page and under the account menu.
+    if root.suggest-open: TouchArea {
+        clicked => {
+            root.suggest-escape();
+        }
+    }
+    if root.suggest-open: SuggestionList {
+        x: search-box.absolute-position.x - root.absolute-position.x;
+        y: search-box.absolute-position.y - root.absolute-position.y + search-box.height + 4px;
+        width: search-box.width;
+        suggestions: root.suggestions;
+        status: root.suggest-status;
+        active: root.suggest-active;
+        query: root.suggest-query;
+        pick(i) => {
+            root.suggest-pick(i);
+        }
+        see-all => {
+            root.suggest-see-all();
+        }
+    }
+}

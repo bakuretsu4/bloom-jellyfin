@@ -1,0 +1,19 @@
+/* GitHub Light for Bloom.
+   Palette: GitHub Primer, primer.style (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: light;
+  --ground: #ffffff;
+  --surface: #f6f8fa;
+  --surface-2: #e7e9eb;
+  --raise: #fcfdfe;
+  --line: #cbcdd0;
+  --line-soft: #e0e3e5;
+  --ink: #1f2328;
+  --ink-2: #626568;
+  --ink-3: #707275;
+  --accent: #0969da;
+  --accent-ink: #ffffff;
+  --good: #1a7f37;
+  --alert: #cf222e;
+}

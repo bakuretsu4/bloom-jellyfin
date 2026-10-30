@@ -1,0 +1,19 @@
+/* Rosé Pine Dawn for Bloom.
+   Palette: Rosé Pine, rosepinetheme.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: light;
+  --ground: #faf4ed;
+  --surface: #fffaf3;
+  --surface-2: #f2e9e1;
+  --raise: #fffaf3;
+  --line: #dfdad9;
+  --line-soft: #f4ede8;
+  --ink: #575279;
+  --ink-2: #6f6a8a;
+  --ink-3: #6f6a8a;
+  --accent: #907aa9;
+  --accent-ink: #111111;
+  --good: #286983;
+  --alert: #b4637a;
+}

@@ -1,0 +1,19 @@
+/* Solarized Light for Bloom.
+   Palette: Solarized by Ethan Schoonover (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: light;
+  --ground: #eee8d5;
+  --surface: #fdf6e3;
+  --surface-2: #f5efdc;
+  --raise: #fffbee;
+  --line: #d9d2bd;
+  --line-soft: #e4ddc8;
+  --ink: #073642;
+  --ink-2: #4c6b6e;
+  --ink-3: #4c6b6e;
+  --accent: #268bd2;
+  --accent-ink: #111111;
+  --good: #859900;
+  --alert: #dc322f;
+}

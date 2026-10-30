@@ -1,0 +1,325 @@
+import { Theme } from "theme.slint";
+import { Surface, M3IconButton, Typing } from "m3.slint";
+
+// One row of the command palette.
+export struct PaletteRow {
+    // "Go to", "Libraries", "Settings", "Titles": shown when it differs from the row above.
+    group: string,
+    label: string,
+    // "Film", "Show, 2019"
+    detail: string,
+    // "home", "library", "downloads", "settings", "servers", "help", "title"
+    icon: string,
+    // The row above is in another group, so this one's group is named.
+    first-in-group: bool,
+}
+
+// Jump to a title, library, setting or page.
+export component CommandPalette inherits Rectangle {
+    in property <[PaletteRow]> rows;
+    in property <int> active;
+    // "", "Searching titles", "Keep typing to search titles", "Nothing called ..."
+    in property <string> note;
+    in-out property <string> query;
+    callback edited(string);
+    callback choose(int);
+    callback move(int);
+    callback close();
+
+    // The dark sheet behind it; pressing outside closes.
+    Rectangle {
+        background: Theme.scrim.with-alpha(0.5);
+        TouchArea {
+            clicked => {
+                root.close();
+            }
+        }
+    }
+    Rectangle {
+        y: 96px;
+        x: (parent.width - self.width) / 2;
+        width: min(640px, parent.width - 48px);
+        height: min(520px, parent.height - 144px);
+        border-radius: 28px;
+        background: Theme.surface-container-high;
+        // Swallows presses on the panel so they don't close it.
+        TouchArea { }
+        VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            Rectangle {
+                height: 56px;
+                border-radius: 28px;
+                background: Theme.surface-container-highest;
+                fs := FocusScope {
+                    forward-focus: ti;
+                    capture-key-pressed(event) => {
+                        if (event.text == Key.Escape) {
+                            root.close();
+                            return accept;
+                        }
+                        if (event.text == Key.DownArrow) {
+                            root.move(1);
+                            return accept;
+                        }
+                        if (event.text == Key.UpArrow) {
+                            root.move(-1);
+                            return accept;
+                        }
+                        return reject;
+                    }
+                    HorizontalLayout {
+                        padding-left: 20px;
+                        padding-right: 16px;
+                        spacing: 12px;
+                        Image {
+                            source: @image-url("../assets/icons/search.svg");
+                            colorize: Theme.on-surface-variant;
+                            width: 24px;
+                            height: 24px;
+                            y: (parent.height - self.height) / 2;
+                        }
+                        Rectangle {
+                            ti := TextInput {
+                                x: 0;
+                                y: (parent.height - self.height) / 2;
+                                width: parent.width;
+                                height: 24px;
+                                font-family: Theme.font;
+                                font-size: 16px;
+                                color: Theme.on-surface;
+                                single-line: true;
+                                text <=> root.query;
+                                edited => {
+                                    root.edited(self.text);
+                                }
+                                accepted => {
+                                    root.choose(root.active);
+                                }
+                                changed has-focus => {
+                                    Typing.active = self.has-focus;
+                                }
+                            }
+                            if ti.text == "": Text {
+                                x: 0;
+                                width: parent.width;
+                                height: parent.height;
+                                text: "Jump to a title, library, setting or page";
+                                color: Theme.on-surface-variant;
+                                font-family: Theme.font;
+                                font-size: 16px;
+                                vertical-alignment: center;
+                            }
+                        }
+                        Rectangle {
+                            width: 36px;
+                            height: 22px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: Theme.outline-variant;
+                            Text {
+                                text: "Esc";
+                                color: Theme.on-surface-variant;
+                                font-family: Theme.font;
+                                font-size: 11px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+            Flickable {
+                content-height: list.preferred-height;
+                list := VerticalLayout {
+                    spacing: 2px;
+                    alignment: start;
+                    for row[i] in root.rows: VerticalLayout {
+                        if row.first-in-group: Text {
+                            height: 32px;
+                            text: row.group;
+                            color: Theme.primary;
+                            font-family: Theme.font;
+                            font-size: 13px;
+                            font-weight: 500;
+                            vertical-alignment: bottom;
+                            horizontal-alignment: left;
+                        }
+                        Surface {
+                            height: 48px;
+                            border-radius: 14px;
+                            background: root.active == i ? Theme.secondary-container : transparent;
+                            clicked => {
+                                root.choose(i);
+                            }
+                            HorizontalLayout {
+                                padding-left: 14px;
+                                padding-right: 16px;
+                                spacing: 14px;
+                                Image {
+                                    source: row.icon == "home" ? @image-url("../assets/icons/home.svg") : row.icon == "library" ? @image-url("../assets/icons/movie.svg") : row.icon == "downloads" ? @image-url("../assets/icons/download.svg") : row.icon == "settings" ? @image-url("../assets/icons/settings.svg") : row.icon == "servers" ? @image-url("../assets/icons/person.svg") : row.icon == "help" ? @image-url("../assets/icons/info.svg") : @image-url("../assets/icons/play_arrow.svg");
+                                    colorize: root.active == i ? Theme.on-secondary-container : Theme.on-surface-variant;
+                                    width: 22px;
+                                    height: 22px;
+                                    y: (parent.height - self.height) / 2;
+                                }
+                                Text {
+                                    text: row.label;
+                                    color: root.active == i ? Theme.on-secondary-container : Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 15px;
+                                    vertical-alignment: center;
+                                    horizontal-alignment: left;
+                                    horizontal-stretch: 1;
+                                    overflow: elide;
+                                }
+                                if row.detail != "": Text {
+                                    text: row.detail;
+                                    color: Theme.on-surface-variant;
+                                    font-family: Theme.font;
+                                    font-size: 12px;
+                                    vertical-alignment: center;
+                                    horizontal-stretch: 0;
+                                }
+                            }
+                        }
+                    }
+                    if root.note != "": Text {
+                        height: 40px;
+                        text: root.note;
+                        color: Theme.on-surface-variant;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        vertical-alignment: center;
+                        horizontal-alignment: left;
+                    }
+                }
+            }
+        }
+    }
+    // The keyboard goes to the field as the palette opens.
+    init => {
+        fs.focus();
+    }
+}
+
+// A key and what it does.
+component Shortcut inherits HorizontalLayout {
+    in property <string> keys;
+    in property <string> does;
+    height: 32px;
+    spacing: 16px;
+    Text {
+        text: root.does;
+        color: Theme.on-surface;
+        font-family: Theme.font;
+        font-size: 14px;
+        vertical-alignment: center;
+        horizontal-alignment: left;
+        horizontal-stretch: 1;
+    }
+    Text {
+        text: root.keys;
+        color: Theme.on-surface-variant;
+        font-family: Theme.font;
+        font-size: 13px;
+        font-weight: 500;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        horizontal-stretch: 0;
+    }
+}
+
+component ShortcutGroup inherits VerticalLayout {
+    in property <string> title;
+    spacing: 2px;
+    alignment: start;
+    Text {
+        height: 32px;
+        text: root.title;
+        color: Theme.primary;
+        font-family: Theme.font;
+        font-size: 14px;
+        font-weight: 500;
+        vertical-alignment: center;
+    }
+    @children
+}
+
+// Every key the app answers to.
+export component ShortcutsOverlay inherits Rectangle {
+    callback close();
+    Rectangle {
+        background: Theme.scrim.with-alpha(0.5);
+        TouchArea {
+            clicked => {
+                root.close();
+            }
+        }
+    }
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: max(24px, (parent.height - self.height) / 2);
+        width: min(760px, parent.width - 48px);
+        height: min(parent.height - 48px, content.preferred-height + 96px);
+        border-radius: 28px;
+        background: Theme.surface-container-high;
+        TouchArea { }
+        VerticalLayout {
+            padding: 24px;
+            spacing: 8px;
+            HorizontalLayout {
+                height: 40px;
+                Text {
+                    text: "Keyboard shortcuts";
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 22px;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    horizontal-alignment: left;
+                }
+                M3IconButton {
+                    icon: @image-url("../assets/icons/close.svg");
+                    clicked => {
+                        root.close();
+                    }
+                }
+            }
+            Flickable {
+                content-height: content.preferred-height;
+                content := HorizontalLayout {
+                    spacing: 40px;
+                    ShortcutGroup {
+                        title: "Watching";
+                        Shortcut { keys: "Space  K"; does: "Play or pause"; }
+                        Shortcut { keys: "\u{2190} \u{2192}  J L"; does: "Back or forward 10 seconds"; }
+                        Shortcut { keys: "\u{2191} \u{2193}"; does: "Volume"; }
+                        Shortcut { keys: "M"; does: "Mute"; }
+                        Shortcut { keys: "C"; does: "Subtitles on or off"; }
+                        Shortcut { keys: "I"; does: "Playback readout"; }
+                        Shortcut { keys: "[  ]"; does: "Previous or next chapter"; }
+                        Shortcut { keys: "S"; does: "Skip intro or credits"; }
+                        Shortcut { keys: "Shift N"; does: "Next episode"; }
+                        Shortcut { keys: "<  >"; does: "Slower or faster"; }
+                        Shortcut { keys: "1\u{2013}9"; does: "Jump to 10% to 90%"; }
+                        Shortcut { keys: "0  Home"; does: "Back to the start"; }
+                        Shortcut { keys: "T"; does: "Theater mode"; }
+                        Shortcut { keys: "F"; does: "Full screen"; }
+                        Shortcut { keys: "Esc"; does: "Leave theater or full screen"; }
+                    }
+                    ShortcutGroup {
+                        title: "Everywhere";
+                        Shortcut { keys: "Ctrl K"; does: "Jump to a title, library, setting or page"; }
+                        Shortcut { keys: "/"; does: "Search"; }
+                        Shortcut { keys: "Alt \u{2190}"; does: "Back"; }
+                        Shortcut { keys: "Ctrl +  Ctrl \u{2212}"; does: "Zoom in or out"; }
+                        Shortcut { keys: "Ctrl 0"; does: "Reset zoom"; }
+                        Shortcut { keys: "?"; does: "This panel"; }
+                    }
+                }
+            }
+        }
+    }
+}

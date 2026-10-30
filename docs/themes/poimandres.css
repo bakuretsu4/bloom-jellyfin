@@ -1,0 +1,19 @@
+/* Poimandres for Bloom.
+   Palette: Poimandres, drcmda (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1b1e28;
+  --surface: #252b37;
+  --surface-2: #2e3442;
+  --raise: #323846;
+  --line: #3f4555;
+  --line-soft: #323846;
+  --ink: #a6accd;
+  --ink-2: #8d92af;
+  --ink-3: #8d92af;
+  --accent: #5de4c7;
+  --accent-ink: #111111;
+  --good: #5de4c7;
+  --alert: #d0679d;
+}

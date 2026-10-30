@@ -1,0 +1,19 @@
+/* Oxocarbon for Bloom.
+   Palette: Oxocarbon, nyoom-engineering (MIT), after IBM Carbon.
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #161616;
+  --surface: #262626;
+  --surface-2: #343435;
+  --raise: #3a3b3b;
+  --line: #4f4f50;
+  --line-soft: #3a3b3b;
+  --ink: #f2f4f8;
+  --ink-2: #b0b1b4;
+  --ink-3: #969799;
+  --accent: #78a9ff;
+  --accent-ink: #111111;
+  --good: #42be65;
+  --alert: #ee5396;
+}

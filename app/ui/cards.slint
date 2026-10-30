@@ -1,0 +1,723 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Surface, M3Button, M3IconButton, MetaLine, MetaPart, MenuRow, ButtonKind } from "m3.slint";
+
+export struct CardData {
+    id: string,
+    // Jellyfin's item type ("Movie", "Episode", "Series", "CollectionFolder", ...).
+    kind: string,
+    title: string,
+    subtitle: string,
+    image: image,
+    has-image: bool,
+    // Artwork exists and is on its way, so the title card isn't drawn in the meantime.
+    has-art: bool,
+    // 0..1 when partly watched, else 0.
+    progress: float,
+    // For an episode: its show, whose page the card's text opens.
+    series-id: string,
+    // A download of it (or of one of a show's episodes) is on this computer.
+    downloaded: bool,
+    // The title card's tint, the same for the same title.
+    tint: color,
+}
+
+export struct SectionData {
+    title: string,
+    // Landscape artwork (a thumbnail) instead of a poster.
+    wide: bool,
+    // Square artwork (an album's cover).
+    square: bool,
+    cards: [CardData],
+}
+
+// What a hover card says about the card under it.
+export struct HoverData {
+    id: string,
+    kind: string,
+    title: string,
+    // For an episode: the show, and "S1 E4".
+    series: string,
+    code: string,
+    meta: [MetaPart],
+    rating: string,
+    overview: string,
+    // "Aired 3 Apr 2026"
+    aired: string,
+    favorite: bool,
+    played: bool,
+    resume: bool,
+    // "Continue E4", "Watch again E4", "Play E4" (episodes)
+    play-label: string,
+    is-episode: bool,
+}
+
+// The one hover card on screen, and the card it is over. Cards ask for it (after the pointer has
+// rested on them), Rust fills it in, and the window draws it (`HoverCard`).
+export global Hover {
+    in-out property <bool> visible;
+    in-out property <bool> loading;
+    in-out property <bool> failed;
+    // The card the pointer is on, so the hover card stays while it moves between the two.
+    in-out property <bool> card-hovered;
+    // The pointer is on one of the card's own buttons (which take it from the card beneath).
+    in-out property <bool> over-buttons;
+    // The artwork's place in the window.
+    in-out property <length> x;
+    in-out property <length> y;
+    in-out property <length> width;
+    in-out property <length> height;
+    in-out property <HoverData> data;
+    in-out property <string> title;
+    // The card the hover card was opened from (and its place across), which stays lifted under it.
+    in-out property <string> open-id;
+    // That card's picture, so pressing the hover card grows it into the page as pressing the card would.
+    in-out property <image> open-image;
+    in-out property <bool> open-has-image;
+    in-out property <length> open-x;
+    callback open(string, string, string, length, length, length, length);
+    callback play(string);
+    // The card was pressed, not a button on it: what pressing the card underneath would have done.
+    callback activate(string, string, string);
+    callback toggle-favorite();
+    callback toggle-played();
+}
+
+// A card's artwork carried into the title page it opens: the picture leaves the card, grows to the
+// page's hero, and gives way to the backdrop there. `GrowOverlay` draws it over the window.
+export global Grow {
+    // 0 nothing, 1 at the card (the page is loading), 2 growing, 3 fading out.
+    in-out property <int> state;
+    in-out property <image> source;
+    // The page's own backdrop, once it has arrived: the picture crossfades into it as it grows, since
+    // the card's small picture stretched to the hero would be soft.
+    in-out property <image> target;
+    in-out property <bool> has-target;
+    // The picture is on its way to the hero (else it only fades where it is).
+    in-out property <bool> grew;
+    in-out property <length> from-x;
+    in-out property <length> from-y;
+    in-out property <length> from-w;
+    in-out property <length> from-h;
+    in-out property <length> to-x;
+    in-out property <length> to-y;
+    in-out property <length> to-w;
+    in-out property <length> to-h;
+}
+
+export component GrowOverlay inherits Rectangle {
+    visible: Grow.state > 0;
+    // Gives up if the page never arrives.
+    Timer {
+        interval: 3s;
+        running: Grow.state == 1;
+        triggered => {
+            Grow.state = 0;
+        }
+    }
+    Timer {
+        interval: 400ms;
+        running: Grow.state == 2;
+        triggered => {
+            Grow.state = 3;
+        }
+    }
+    Timer {
+        interval: 260ms;
+        running: Grow.state == 3;
+        triggered => {
+            Grow.state = 0;
+        }
+    }
+    shape := Rectangle {
+        x: Grow.grew ? Grow.to-x : Grow.from-x;
+        y: Grow.grew ? Grow.to-y : Grow.from-y;
+        width: Grow.grew ? Grow.to-w : Grow.from-w;
+        height: Grow.grew ? Grow.to-h : Grow.from-h;
+        border-radius: Grow.grew ? 28px : 16px;
+        clip: true;
+        opacity: Grow.state == 3 ? 0.0 : 1.0;
+        animate x, y, width, height, border-radius { duration: 380ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+        animate opacity { duration: 240ms; easing: linear; }
+        Image {
+            x: 0;
+            y: 0;
+            width: parent.width;
+            height: parent.height;
+            source: Grow.source;
+            image-fit: cover;
+        }
+        // The page's hero as it will be: the panel with the words at the left (its colour), the
+        // backdrop at the right melting into it, so nothing changes as this gives way to the page.
+        if Grow.has-target: Rectangle {
+            property <length> panel: min(680px, max(500px, Grow.to-w * 0.5));
+            x: 0;
+            y: 0;
+            width: parent.width;
+            height: parent.height;
+            background: Theme.surface-container;
+            opacity: Grow.state >= 2 ? 1.0 : 0.0;
+            animate opacity { duration: Theme.reduce-motion ? 0ms : 320ms; easing: ease-in-out; }
+            Image {
+                x: parent.panel - 120px;
+                y: 0;
+                width: parent.width - self.x;
+                height: parent.height;
+                source: Grow.target;
+                image-fit: cover;
+            }
+            Rectangle {
+                x: parent.panel - 120px;
+                y: 0;
+                width: 220px;
+                height: parent.height;
+                background: @linear-gradient(90deg, Theme.surface-container 0%, Theme.surface-container.with-alpha(0.7) 40%, Theme.surface-container.with-alpha(0.0) 100%);
+            }
+        }
+    }
+}
+
+// What a card is, to decide whether it gets a hover card.
+global Kinds {
+    pure public function has-page(kind: string) -> bool {
+        return kind == "Movie" || kind == "Series" || kind == "BoxSet";
+    }
+    pure public function hoverable(kind: string) -> bool {
+        return kind == "Movie" || kind == "Series" || kind == "Episode" || kind == "Video" || kind == "MusicVideo";
+    }
+}
+
+export component MediaCard inherits Rectangle {
+    in property <CardData> data;
+    in property <bool> wide;
+    in property <bool> square;
+    // The picture (or the whole card) was pressed.
+    callback activated();
+    // The text of an episode card was pressed: its show opens.
+    callback open-series();
+    property <bool> split: root.data.kind == "Episode" && root.data.series-id != "";
+    // Posters are 2:3, wide cards 16:9, covers square; the width is the row's (240 and 360) or the grid cell's.
+    in property <length> card-width: wide ? 360px : 240px;
+    property <length> art-height: wide ? card-width * 9 / 16 : square ? card-width : card-width * 3 / 2;
+    width: card-width;
+    height: art-height + 56px;
+
+    // Where this card is in its row, so a row's cards come in one after another.
+    in property <int> rise;
+    property <bool> arrived;
+    init => {
+        root.arrived = true;
+    }
+    property <bool> hovered: art.has-hover;
+    // Lifted under the pointer, and while its hover card is up: the card covers the artwork, so the
+    // pointer is on the card then, and the artwork must not drop away beneath it.
+    property <bool> lifted: art.has-hover || (Hover.visible && Hover.open-id == root.data.id && Hover.open-x == root.absolute-position.x);
+    property <bool> armed;
+    changed hovered => {
+        Hover.card-hovered = root.hovered;
+        root.armed = root.hovered && Kinds.hoverable(root.data.kind);
+    }
+    Timer {
+        interval: 450ms;
+        running: root.armed;
+        triggered => {
+            root.armed = false;
+            Hover.open-id = root.data.id;
+            Hover.open-image = root.data.image;
+            Hover.open-has-image = root.data.has-image;
+            Hover.open-x = root.absolute-position.x;
+            Hover.open(root.data.id, root.data.kind, root.data.title, art.absolute-position.x, art.absolute-position.y, art.width, art.height);
+        }
+    }
+
+    art := Surface {
+        y: (root.lifted ? -4px : 0px) + (root.arrived || Theme.reduce-motion ? 0px : 12px);
+        opacity: root.arrived || Theme.reduce-motion ? 1.0 : 0.0;
+        animate opacity { duration: 350ms; delay: min(root.rise, 8) * 35ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+        height: root.art-height;
+        border-radius: 16px;
+        // A title card: a tint of the title's own, over the surface.
+        background: root.data.tint.mix(Theme.surface-container-high, 0.19);
+        animate y { duration: Theme.reduce-motion ? 0ms : 250ms; delay: root.arrived ? 0ms : min(root.rise, 8) * 35ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        clicked => {
+            // A film, show or collection opens its page: the picture grows into it.
+            if (root.data.has-image && !Theme.reduce-motion && Kinds.has-page(root.data.kind)) {
+                Grow.source = root.data.image;
+                Grow.has-target = false;
+                Grow.grew = false;
+                Grow.from-x = art.absolute-position.x;
+                Grow.from-y = art.absolute-position.y;
+                Grow.from-w = art.width;
+                Grow.from-h = art.height;
+                Grow.state = 1;
+            }
+            root.activated();
+        }
+
+        // Missing or broken artwork: the card names itself (not while a picture is still coming).
+        if !root.data.has-art && !root.data.has-image: VerticalLayout {
+            x: 8px;
+            width: parent.width - 16px;
+            height: parent.height;
+            alignment: center;
+            spacing: 6px;
+            Text {
+                text: root.data.title;
+                color: Theme.on-surface.with-alpha(0.78);
+                font-family: Theme.font;
+                font-size: 16px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+                overflow: elide;
+            }
+            if !root.wide && root.data.subtitle != "": Text {
+                text: root.data.subtitle;
+                color: Theme.on-surface.with-alpha(0.6);
+                font-family: Theme.font;
+                font-size: 12px;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+        }
+        if root.data.has-image: Image {
+            source: root.data.image;
+            width: parent.width;
+            height: parent.height;
+            image-fit: cover;
+        }
+        if root.data.downloaded: Rectangle {
+            x: 6px;
+            y: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            background: Theme.surface.with-alpha(0.78);
+            Image {
+                source: @image-url("../assets/icons/download.svg");
+                colorize: Theme.primary;
+                width: 14px;
+                height: 14px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+        if root.data.progress > 0: Rectangle {
+            y: parent.height - 4px;
+            height: 4px;
+            background: Theme.surface-container-highest;
+            Rectangle {
+                x: 0;
+                width: parent.width * root.data.progress;
+                background: Theme.primary;
+            }
+        }
+    }
+    // The text: for an episode with a show, a second target that opens the show.
+    text-area := Rectangle {
+        y: root.art-height + 8px;
+        height: 40px;
+        VerticalLayout {
+            Text {
+                text: root.data.title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 500;
+                overflow: elide;
+                height: 20px;
+            }
+            Text {
+                text: root.data.subtitle;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 12px;
+                overflow: elide;
+                height: 16px;
+            }
+        }
+        if root.split: TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.open-series();
+            }
+        }
+    }
+}
+
+// A titled row of cards that scrolls sideways, with arrows that appear when there is more to see.
+export component CardRail inherits Rectangle {
+    in property <string> heading;
+    in property <[CardData]> cards;
+    in property <bool> wide;
+    in property <bool> square;
+    callback activate(string, string, string);
+    property <length> card-width: wide ? 360px : 240px;
+    property <length> art-area: wide ? 360px * 9 / 16 : square ? 240px : 360px;
+    height: 44px + art-area + 56px + 16px;
+    Text {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: 36px;
+        vertical-alignment: center;
+        text: root.heading;
+        color: Theme.on-surface;
+        font-family: Theme.font;
+        font-size: 22px;
+    }
+    fl := Flickable {
+        y: 44px;
+        height: parent.height - 44px;
+        content-width: root.cards.length * (root.card-width + 16px);
+        // Likewise when the row scrolls sideways.
+        changed content-x => {
+            Hover.visible = false;
+        }
+        animate content-x { duration: Theme.reduce-motion ? 0ms : 250ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+        for card[i] in root.cards: MediaCard {
+            rise: i;
+            x: i * (root.card-width + 16px);
+            data: card;
+            wide: root.wide;
+            square: root.square;
+            activated => {
+                root.activate(card.id, card.kind, card.title);
+            }
+            open-series => {
+                root.activate(card.series-id, "Series", card.title);
+            }
+        }
+    }
+    // Back and forward: a page is 85% of the row, and each arrow hides at its end.
+    if fl.content-x < -1px: Rectangle {
+        x: 6px;
+        y: 44px + root.art-area / 2 - 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: Theme.surface-container-high.with-alpha(0.92);
+        Image {
+            source: @image-url("../assets/icons/chevron_left.svg");
+            colorize: Theme.on-surface;
+            width: 24px;
+            height: 24px;
+            x: 8px;
+            y: 8px;
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                fl.content-x = min(0px, fl.content-x + root.width * 0.85);
+            }
+        }
+    }
+    if fl.content-x > root.width - fl.content-width + 1px && fl.content-width > root.width: Rectangle {
+        x: root.width - 46px;
+        y: 44px + root.art-area / 2 - 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: Theme.surface-container-high.with-alpha(0.92);
+        Image {
+            source: @image-url("../assets/icons/chevron_right.svg");
+            colorize: Theme.on-surface;
+            width: 24px;
+            height: 24px;
+            x: 8px;
+            y: 8px;
+        }
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                fl.content-x = max(root.width - fl.content-width, fl.content-x - root.width * 0.85);
+            }
+        }
+    }
+}
+
+// Cards in a grid of cells at least 220 px wide (340 for wide cards), stretched to fill the row.
+export component CardGrid inherits Rectangle {
+    in property <[CardData]> cards;
+    in property <bool> wide;
+    in property <bool> square;
+    callback activate(string, string, string);
+    property <length> min-cell: wide ? 340px : 220px;
+    property <int> columns: max(1, Math.floor((root.width + 20px) / (root.min-cell + 20px)));
+    property <length> cell: (root.width - (root.columns - 1) * 20px) / root.columns;
+    property <length> card-height: (wide ? root.cell * 9 / 16 : square ? root.cell : root.cell * 3 / 2) + 56px;
+    height: Math.ceil(root.cards.length / root.columns) * (root.card-height + 28px);
+    for card[i] in root.cards: MediaCard {
+            rise: i;
+        x: mod(i, root.columns) * (root.cell + 20px);
+        y: Math.floor(i / root.columns) * (root.card-height + 28px);
+        card-width: root.cell;
+        data: card;
+        wide: root.wide;
+        square: root.square;
+        activated => {
+            root.activate(card.id, card.kind, card.title);
+        }
+        open-series => {
+            root.activate(card.series-id, "Series", card.title);
+        }
+    }
+}
+
+// The hover card: drawn over the artwork it belongs to, once the pointer has rested there.
+export component HoverCard inherits Rectangle {
+    property <bool> over: card-area.has-hover;
+    property <bool> kept: root.over || Hover.card-hovered || Hover.over-buttons;
+    // The card is placed in the window, not on the page: when the page scrolls, it goes.
+    property <length> page-y: PageScroll.y;
+    changed page-y => {
+        Hover.visible = false;
+    }
+    visible: Hover.visible;
+    // A pixel larger than the artwork all round, so none of it shows at the rounded corners.
+    x: Hover.x - 1px;
+    y: Hover.y - 1px;
+    width: Hover.width + 2px;
+    height: Hover.height + 2px;
+    opacity: Hover.visible ? 1.0 : 0.0;
+    animate opacity { duration: Theme.reduce-motion ? 0ms : 150ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+
+    // Closes a short while after the pointer has left both the card and this.
+    Timer {
+        interval: 140ms;
+        running: Hover.visible && !root.kept;
+        triggered => {
+            Hover.visible = false;
+        }
+    }
+
+    Rectangle {
+        border-radius: 16px;
+        clip: true;
+        background: Theme.surface-container-high;
+        // The card lifts as it opens.
+        transform-scale: Hover.visible || Theme.reduce-motion ? 1.0 : 0.94;
+        animate transform-scale { duration: 180ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+        card-area := TouchArea {
+            mouse-cursor: pointer;
+            // The wheel goes on to the page beneath, and the card goes away.
+            scroll-event(e) => {
+                Hover.visible = false;
+                return reject;
+            }
+            clicked => {
+                if (Hover.open-has-image && !Theme.reduce-motion && Kinds.has-page(Hover.data.kind)) {
+                    Grow.source = Hover.open-image;
+                    Grow.has-target = false;
+                    Grow.grew = false;
+                    Grow.from-x = Hover.x;
+                    Grow.from-y = Hover.y;
+                    Grow.from-w = Hover.width;
+                    Grow.from-h = Hover.height;
+                    Grow.state = 1;
+                }
+                Hover.visible = false;
+                Hover.activate(Hover.data.id, Hover.data.kind, Hover.title);
+            }
+        }
+        if Hover.loading && !Hover.failed: VerticalLayout {
+            padding: 14px;
+            spacing: 8px;
+            alignment: start;
+            Text {
+                text: Hover.title;
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 600;
+                wrap: word-wrap;
+            }
+            for w in [0.55, 1.0, 0.8]: Rectangle {
+                height: 10px;
+                border-radius: 5px;
+                width: parent.width * w;
+                background: Theme.surface-container-highest;
+            }
+        }
+        if Hover.failed: VerticalLayout {
+            padding: 14px;
+            Text {
+                text: "Couldn't load the details.";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+        }
+        if !Hover.loading && !Hover.failed: VerticalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 14px;
+            padding-bottom: 12px;
+            spacing: 4px;
+            alignment: stretch;
+            if Hover.data.is-episode && Hover.data.series != "": Text {
+                text: Hover.data.series;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 12px;
+                font-weight: 500;
+                overflow: elide;
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                if Hover.data.is-episode && Hover.data.code != "": Text {
+                    text: Hover.data.code;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    vertical-alignment: top;
+                    horizontal-stretch: 0;
+                }
+                Text {
+                    text: Hover.data.title;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 15px;
+                    font-weight: 600;
+                    wrap: word-wrap;
+                    max-height: 42px;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                if Hover.data.favorite: Image {
+                    source: @image-url("../assets/icons/favorite-fill.svg");
+                    colorize: Theme.primary;
+                    width: 14px;
+                    height: 14px;
+                    y: 2px;
+                    horizontal-stretch: 0;
+                }
+            }
+            Rectangle {
+                height: 2px;
+            }
+            if Hover.data.meta.length > 0 || Hover.data.rating != "": MetaLine {
+                parts: Hover.data.meta;
+                tag: Hover.data.rating;
+                font-size: 12px;
+                gap: 5px;
+            }
+            if Hover.data.is-episode && Hover.data.aired != "": Text {
+                text: Hover.data.aired;
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 12.5px;
+            }
+            Rectangle {
+                height: 4px;
+            }
+            // The synopsis takes what the rest leaves. When it doesn't all fit it scrolls by itself,
+            // slowly down, rests, and slowly back up.
+            overview-area := Rectangle {
+                vertical-stretch: 1;
+                min-height: 24px;
+                clip: true;
+                property <length> overflow: max(0px, overview-text.preferred-height - self.height);
+                // 0 rests at the top, 1 scrolls down, 2 rests at the bottom, 3 scrolls up.
+                property <int> phase;
+                property <duration> travel: (self.overflow / 1px) / 24 * 1000ms;
+                property <string> shown: Hover.data.id;
+                changed shown => {
+                    self.phase = 0;
+                }
+                changed overflow => {
+                    self.phase = 0;
+                }
+                Timer {
+                    interval: overview-area.phase == 0 ? 1600ms : overview-area.phase == 2 ? 1300ms : max(overview-area.travel, 50ms);
+                    running: Hover.visible && overview-area.overflow > 0px && !Theme.reduce-motion;
+                    triggered => {
+                        overview-area.phase = mod(overview-area.phase + 1, 4);
+                    }
+                }
+                overview-text := Text {
+                    x: 0;
+                    y: (overview-area.phase == 1 || overview-area.phase == 2) ? -overview-area.overflow : 0px;
+                    width: parent.width;
+                    text: Hover.data.overview;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 12.5px;
+                    wrap: word-wrap;
+                    animate y {
+                        duration: (overview-area.phase == 1 || overview-area.phase == 3) ? overview-area.travel : 0ms;
+                        easing: linear;
+                    }
+                }
+                // Soft edges where the text runs on.
+                Rectangle {
+                    y: 0;
+                    height: 14px;
+                    opacity: overview-text.y < -1px ? 1.0 : 0.0;
+                    animate opacity { duration: 150ms; }
+                    background: @linear-gradient(180deg, Theme.surface-container-high 0%, Theme.surface-container-high.with-alpha(0.0) 100%);
+                }
+                Rectangle {
+                    y: parent.height - self.height;
+                    height: 18px;
+                    opacity: overview-area.overflow > 0px && overview-text.y > -overview-area.overflow + 1px ? 1.0 : 0.0;
+                    animate opacity { duration: 150ms; }
+                    background: @linear-gradient(0deg, Theme.surface-container-high 0%, Theme.surface-container-high.with-alpha(0.0) 100%);
+                }
+            }
+            Rectangle {
+                height: 4px;
+            }
+            // The buttons always have their own row, so a long synopsis never pushes them off.
+            HorizontalLayout {
+                spacing: 8px;
+                height: 40px;
+                alignment: start;
+                if root.width > 210px: M3Button {
+                    text: Hover.data.is-episode ? Hover.data.play-label : (Hover.data.resume ? "Resume" : "Play");
+                    icon: @image-url("../assets/icons/play_arrow.svg");
+                    height: 40px;
+                    changed has-hover => {
+                        Hover.over-buttons = self.has-hover;
+                    }
+                    clicked => {
+                        Hover.visible = false;
+                        Hover.play(Hover.data.id);
+                    }
+                }
+                if root.width <= 210px: M3IconButton {
+                    icon: @image-url("../assets/icons/play_arrow.svg");
+                    background: Theme.primary;
+                    tint: Theme.on-primary;
+                    changed has-hover => {
+                        Hover.over-buttons = self.has-hover;
+                    }
+                    clicked => {
+                        Hover.visible = false;
+                        Hover.play(Hover.data.id);
+                    }
+                }
+                if !Hover.data.is-episode: M3IconButton {
+                    icon: Hover.data.favorite ? @image-url("../assets/icons/favorite-fill.svg") : @image-url("../assets/icons/favorite.svg");
+                    tint: Hover.data.favorite ? Theme.primary : Theme.on-surface-variant;
+                    changed has-hover => {
+                        Hover.over-buttons = self.has-hover;
+                    }
+                    clicked => {
+                        Hover.toggle-favorite();
+                    }
+                }
+                M3IconButton {
+                    icon: Hover.data.played ? @image-url("../assets/icons/check_circle-fill.svg") : @image-url("../assets/icons/check_circle.svg");
+                    tint: Hover.data.played ? Theme.primary : Theme.on-surface-variant;
+                    changed has-hover => {
+                        Hover.over-buttons = self.has-hover;
+                    }
+                    clicked => {
+                        Hover.toggle-played();
+                    }
+                }
+            }
+        }
+    }
+}

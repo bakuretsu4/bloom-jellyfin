@@ -1,0 +1,19 @@
+/* Nightfox for Bloom.
+   Palette: Nightfox, EdenEast (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #192330;
+  --surface: #29394f;
+  --surface-2: #344358;
+  --raise: #39485c;
+  --line: #4a5769;
+  --line-soft: #39485c;
+  --ink: #cdcecf;
+  --ink-2: #a2a5a9;
+  --ink-3: #a2a5a9;
+  --accent: #719cd6;
+  --accent-ink: #111111;
+  --good: #81b29a;
+  --alert: #c94f6d;
+}

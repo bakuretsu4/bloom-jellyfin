@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="brand/bloom-moth.svg" alt="Bloom" width="96">
+  <img src="brand/bloom-mark.svg" alt="Bloom" width="96">
 </p>
 
 <h1 align="center">Bloom</h1>
@@ -7,17 +7,17 @@
 <p align="center">A fast desktop client for <a href="https://jellyfin.org">Jellyfin</a>, for Linux.</p>
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Bloom's Home screen, with a film in the spotlight and your libraries below" width="100%">
+  <img src="docs/screenshots/home.png" alt="Bloom's Home screen, with a show in the spotlight and your libraries below" width="100%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/title.png" alt="A show's page in Bloom, with its artwork, details and first season's episodes" width="100%">
+  <img src="docs/screenshots/title.png" alt="A film's page in Bloom: its details beside the artwork, then the cast" width="100%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/player.png" alt="Bloom's player showing a 4K film decoded on the GPU, with similar titles beside it" width="100%">
+  <img src="docs/screenshots/player.png" alt="Bloom's player with an episode playing, the show's episodes beside it" width="100%">
 </p>
 
 Bloom plays your films and shows from a Jellyfin server in a native window, decoding video on your GPU,
-with the polish of a streaming app. It's built with Tauri, Svelte and mpv.
+with the polish of a streaming app. It's built in Rust with [Slint](https://slint.dev) and mpv, and follows Material 3.
 
 > **Pre-release.** Bloom is a personal project in its first public release. It works day to day,
 > but expect rough edges. Bug reports are very welcome; replies may take a while.
@@ -30,14 +30,18 @@ Bloom is not affiliated with or endorsed by the Jellyfin project.
   software as the fallback. Direct play whenever the file allows, the server's transcoding
   otherwise, with a quality menu.
 - **A full player:** chapters, skip intro and credits, audio and subtitle tracks remembered per
-  show, subtitle size and style, playback speed, up next, theater mode and full screen.
-- **Browsing:** Home with a spotlight, Continue Watching and Next Up; libraries, series, films,
-  collections and trailers; search with suggestions.
-- **Downloads** of films, episodes and whole seasons, playable with no server.
+  show, subtitle size and style, playback speed, up next, theater mode, full screen and a playback
+  readout (<kbd>I</kbd>). Your screen won't dim, lock or sleep while something is playing.
+- **Browsing:** Home with a spotlight, Continue Watching, Next Up and "Because you watched" rows;
+  libraries, series, films, collections (which you can edit) and trailers; search with suggestions.
+- **Music:** albums, artists and songs, with a player that follows you around the app.
+- **Downloads** of films, episodes, whole seasons and collections, playable with no server.
 - **Stays in sync** with the server as things change: watched state, favourites, new titles.
 - **Several servers and accounts**, with servers on your network found automatically.
-- **Extras:** a command palette (<kbd>Ctrl</kbd>+<kbd>K</kbd>), custom themes, Discord presence
-  and desktop notifications for new episodes (both off until you turn them on).
+- **Extras:** a command palette (<kbd>Ctrl</kbd>+<kbd>K</kbd>), custom themes with a colour picker and
+  [30 ready-made ones](docs/themes.md#ready-made-themes) (Catppuccin, Gruvbox, Nord, Dracula, Rosé
+  Pine and more), Discord presence and desktop notifications for new episodes (both off until you
+  turn them on). No frame-rate cap on the interface.
 
 **Documentation:** [getting started](docs/getting-started.md) · [watching](docs/watching.md) ·
 [downloads](docs/downloads.md) · [settings](docs/settings.md) · [custom themes](docs/themes.md) ·
@@ -45,11 +49,11 @@ Bloom is not affiliated with or endorsed by the Jellyfin project.
 
 ## Install
 
-Download `Bloom_0.1.0_amd64.AppImage` from the [releases](../../releases), then:
+Download the `.AppImage` from the latest [release](../../releases), then:
 
 ```sh
-chmod +x Bloom_0.1.0_amd64.AppImage
-./Bloom_0.1.0_amd64.AppImage
+chmod +x Bloom-*-x86_64.AppImage
+./Bloom-*-x86_64.AppImage
 ```
 
 **Requirements**
@@ -85,6 +89,7 @@ Press <kbd>?</kbd> in Bloom for the full list. In the player:
 | <kbd>↑</kbd> <kbd>↓</kbd> | Volume |
 | <kbd>M</kbd> | Mute |
 | <kbd>C</kbd> | Subtitles on or off |
+| <kbd>I</kbd> | Playback readout |
 | <kbd>[</kbd> <kbd>]</kbd> | Previous or next chapter |
 | <kbd>S</kbd> | Skip intro or credits |
 | <kbd>Shift</kbd>+<kbd>N</kbd> | Next episode |
@@ -96,13 +101,11 @@ Press <kbd>?</kbd> in Bloom for the full list. In the player:
 
 ## Known issues
 
-- **Scrolling the page while a video plays can drop a few frames**, most noticeably on
-  integrated graphics. Playback itself stays smooth.
 - **Hybrid laptops on Wayland:** `prime-run` alone doesn't move Bloom to the NVIDIA GPU. Add
   `__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json` as well.
   Without either, Bloom runs on the integrated GPU, which works fine.
 - **Seek-bar thumbnails** appear only when the server has generated trickplay images.
-- **No music yet.** Music libraries show, but there's no music player or album downloads.
+- **Music** has no album downloads, playlists or queue editing yet.
 - **Server discovery** finds servers that answer Jellyfin's UDP broadcast on your local network;
   others need their address typed in.
 - Linux and x86_64 only for now.
@@ -118,19 +121,17 @@ Press <kbd>?</kbd> in Bloom for the full list. In the player:
 
 ## Building from source
 
-You need Rust, Node.js with npm, libmpv 0.41 or newer with its headers, and WebKitGTK 4.1. On
-Arch: `sudo pacman -S --needed base-devel rust nodejs npm mpv webkit2gtk-4.1`.
+You need Rust, libmpv 0.41 or newer with its headers, and fontconfig. On Arch:
+`sudo pacman -S --needed base-devel rust mpv fontconfig`.
 
 ```sh
 cd app
-npm install
-npm run tauri dev      # run a development build
-npm run tauri build    # build release bundles
+cargo run --release
 ```
 
 The AppImage is built in an Ubuntu 24.04 container so it runs on older distributions too:
 `packaging/build-appimage.sh` (needs Docker), then `packaging/test-appimage.sh` to try it on clean
-Ubuntu and Fedora. Tests: `cargo test` in `app/src-tauri`.
+Ubuntu and Fedora. Tests: `cargo test` in `core` and in `app`.
 
 [DESIGN.md](DESIGN.md) describes the visual system: colour, type, motion and components.
 

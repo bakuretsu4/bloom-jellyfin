@@ -1,0 +1,19 @@
+/* Material Palenight for Bloom.
+   Palette: Material Theme, material-theme.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #292d3e;
+  --surface: #333747;
+  --surface-2: #3b3f50;
+  --raise: #3e4354;
+  --line: #4a4e62;
+  --line-soft: #3e4354;
+  --ink: #a6accd;
+  --ink-2: #9ba1c0;
+  --ink-3: #9ba1c0;
+  --accent: #82aaff;
+  --accent-ink: #111111;
+  --good: #c3e88d;
+  --alert: #ff5370;
+}

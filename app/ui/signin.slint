@@ -1,0 +1,498 @@
+import { Theme } from "theme.slint";
+import { M3Button, M3TextField, M3Chip, M3Switch, Surface, Avatar, ButtonKind } from "m3.slint";
+
+// A sign-in kept on this computer.
+export struct SavedAccountData {
+    server-id: string,
+    user-id: string,
+    name: string,
+    // The name's first letter, for the avatar.
+    initial: string,
+    // "Home Media, 192.168.1.20:8096"
+    detail: string,
+    // Their picture, when they have one.
+    image: image,
+    has-image: bool,
+}
+
+// A server that answered on the network.
+export struct NearbyData {
+    name: string,
+    initial: string,
+    address: string,
+}
+
+component Heading inherits Text {
+    color: Theme.on-surface;
+    font-family: Theme.font;
+    font-size: 24px;
+    wrap: word-wrap;
+}
+
+component Note inherits Text {
+    color: Theme.on-surface-variant;
+    font-family: Theme.font;
+    font-size: 14px;
+    wrap: word-wrap;
+}
+
+// Two steps in one card: the server (saved accounts, servers found on the network, an address),
+// then the account (a name and password, or Quick Connect).
+export component SignIn inherits Rectangle {
+    in property <bool> server-step: true;
+    in property <bool> busy;
+    in property <string> error;
+    in property <string> server-name;
+    // "192.168.1.20:8096, Jellyfin 12.1.0"
+    in property <string> server-detail;
+    in property <[SavedAccountData]> saved;
+    in property <[NearbyData]> nearby;
+    // "Looking for Jellyfin servers on this network", or what to do when none answered; empty
+    // once some are listed.
+    in property <string> nearby-note;
+    in property <bool> looking;
+    // The names the server offers to pick from; most servers hide them.
+    in property <[string]> users;
+    in property <bool> qc-available;
+    in property <string> qc-code;
+    in property <string> qc-error;
+    // Opened from inside Bloom (to add an account): there is somewhere to go back to.
+    in property <bool> can-cancel;
+    // Posters from the artwork cache, for the wall beside the form (empty: nothing is cached yet).
+    in property <[image]> wall;
+    // Why this screen came up unasked ("Your sign-in ended on the server ...").
+    in property <string> notice;
+    in-out property <string> address;
+    in-out property <string> username;
+    in-out property <string> password;
+    in-out property <bool> remember: true;
+    callback check-server(string);
+    callback sign-in(string, string);
+    callback change-server();
+    callback resume(string, string);
+    callback forget(string, string);
+    callback connect-to(string);
+    callback search-again();
+    callback new-code();
+    callback cancel();
+
+    background: Theme.surface;
+    // With room, the form takes the left and the artwork wall the right, as the original.
+    property <bool> wide: root.width >= 900px;
+    property <length> form-width: root.wide ? max(580px, root.width * 0.42) : root.width;
+
+    if root.wide && root.wall.length > 0: wall-panel := Rectangle {
+        x: root.form-width;
+        y: 16px;
+        width: root.width - root.form-width - 16px;
+        height: root.height - 32px;
+        border-radius: 28px;
+        background: Theme.surface-container;
+        clip: true;
+        // Four columns of posters, tilted and scaled past the edges.
+        property <length> wall-width: self.width * 1.32;
+        property <length> tile: (self.wall-width - 3 * 14px) / 4;
+        // The whole wall tilts about the middle of the panel.
+        Rectangle {
+            width: wall-panel.wall-width;
+            height: wall-panel.tile * 1.5 * 4 + 14px * 3;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            transform-rotation: -8deg;
+            for poster[i] in root.wall: Image {
+                x: mod(i, 4) * (wall-panel.tile + 14px);
+                y: floor(i / 4) * (wall-panel.tile * 1.5 + 14px);
+                width: wall-panel.tile;
+                height: wall-panel.tile * 1.5;
+                source: poster;
+                image-fit: cover;
+            }
+        }
+        // The form's surface carried across the artwork.
+        Rectangle {
+            background: @linear-gradient(100deg, Theme.surface-container 0%, Theme.surface-container.with-alpha(0.4) 34%, Theme.surface-container.with-alpha(0.0) 70%);
+        }
+    }
+
+    Flickable {
+        x: 0;
+        y: 0;
+        width: root.form-width;
+        height: root.height;
+        content-height: max(root.height, card.preferred-height + 32px);
+        Rectangle {
+            width: min(540px, root.form-width - 48px);
+            height: card.preferred-height;
+            x: (root.form-width - self.width) / 2;
+            y: max(16px, (root.height - self.height) / 2);
+            border-radius: 28px;
+            background: Theme.surface-container;
+
+            card := VerticalLayout {
+                padding: 32px;
+                spacing: 16px;
+                alignment: start;
+                HorizontalLayout {
+                    spacing: 12px;
+                    Image {
+                        source: @image-url("../assets/bloom-mark.svg");
+                        width: 36px;
+                        height: 36px;
+                    }
+                    Text {
+                        text: "Bloom";
+                        color: Theme.on-surface;
+                        font-family: Theme.font;
+                        font-size: 22px;
+                        vertical-alignment: center;
+                    }
+                    Rectangle { }
+                    if root.can-cancel: M3Button {
+                        text: "Back to Bloom";
+                        kind: ButtonKind.text;
+                        clicked => {
+                            root.cancel();
+                        }
+                    }
+                }
+
+                if root.notice != "": Rectangle {
+                    height: notice-text.preferred-height + 24px;
+                    border-radius: 12px;
+                    background: Theme.secondary-container;
+                    notice-text := Text {
+                        x: 16px;
+                        width: parent.width - 32px;
+                        text: root.notice;
+                        color: Theme.on-secondary-container;
+                        font-family: Theme.font;
+                        font-size: 14px;
+                        wrap: word-wrap;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // ---- step one: the server
+                if root.server-step && root.saved.length > 0: VerticalLayout {
+                    spacing: 8px;
+                    Heading {
+                        text: "Welcome back";
+                    }
+                    for account in root.saved: Rectangle {
+                        height: 64px;
+                        border-radius: 16px;
+                        background: Theme.surface-container-high;
+                        HorizontalLayout {
+                            padding: 12px;
+                            spacing: 12px;
+                            Avatar {
+                                name: account.initial;
+                                image: account.image;
+                                has-image: account.has-image;
+                                y: (parent.height - self.height) / 2;
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: account.name;
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 15px;
+                                    overflow: elide;
+                                }
+                                Text {
+                                    text: account.detail;
+                                    color: Theme.on-surface-variant;
+                                    font-family: Theme.font;
+                                    font-size: 12px;
+                                    overflow: elide;
+                                }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                M3Button {
+                                    text: "Continue";
+                                    clicked => {
+                                        if (!root.busy) {
+                                            root.resume(account.server-id, account.user-id);
+                                        }
+                                    }
+                                }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                M3Button {
+                                    text: "Forget";
+                                    kind: ButtonKind.text;
+                                    clicked => {
+                                        if (!root.busy) {
+                                            root.forget(account.server-id, account.user-id);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if root.server-step: VerticalLayout {
+                    spacing: 12px;
+                    Heading {
+                        text: root.saved.length > 0 ? "Or connect to a server" : "Connect to your server";
+                        font-size: root.saved.length > 0 ? 18px : 24px;
+                    }
+                    Note {
+                        text: "Pick one Bloom found, or use the address you open Jellyfin with in a browser.";
+                    }
+                    HorizontalLayout {
+                        Text {
+                            text: "On your network";
+                            color: Theme.primary;
+                            font-family: Theme.font;
+                            font-size: 13px;
+                            font-weight: 500;
+                            vertical-alignment: center;
+                        }
+                        Rectangle { }
+                        M3Button {
+                            text: root.looking ? "Looking" : "Search again";
+                            kind: ButtonKind.text;
+                            clicked => {
+                                if (!root.looking && !root.busy) {
+                                    root.search-again();
+                                }
+                            }
+                        }
+                    }
+                    if root.nearby-note != "": Note {
+                        text: root.nearby-note;
+                        font-size: 13px;
+                    }
+                    for server in root.nearby: Surface {
+                        height: 56px;
+                        border-radius: 16px;
+                        background: Theme.surface-container-high;
+                        clicked => {
+                            if (!root.busy) {
+                                root.connect-to(server.address);
+                            }
+                        }
+                        HorizontalLayout {
+                            padding: 8px;
+                            padding-left: 12px;
+                            padding-right: 16px;
+                            spacing: 12px;
+                            Avatar {
+                                name: server.initial;
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 18px;
+                                y: (parent.height - self.height) / 2;
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: server.name;
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 15px;
+                                    overflow: elide;
+                                }
+                                Text {
+                                    text: server.address;
+                                    color: Theme.on-surface-variant;
+                                    font-family: Theme.font;
+                                    font-size: 12px;
+                                    overflow: elide;
+                                }
+                            }
+                            Text {
+                                text: "Connect";
+                                color: Theme.primary;
+                                font-family: Theme.font;
+                                font-size: 14px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                    M3TextField {
+                        label: "Server address";
+                        text <=> root.address;
+                        accepted => {
+                            root.check-server(root.address);
+                        }
+                    }
+                }
+
+                // ---- step two: the account
+                if !root.server-step: VerticalLayout {
+                    spacing: 16px;
+                    VerticalLayout {
+                        spacing: 4px;
+                        Heading {
+                            text: "Sign in to " + root.server-name;
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            alignment: start;
+                            Note {
+                                text: root.server-detail + ".";
+                                font-size: 13px;
+                                wrap: no-wrap;
+                                vertical-alignment: center;
+                            }
+                            Surface {
+                                width: link-text.preferred-width + 8px;
+                                height: 24px;
+                                border-radius: 4px;
+                                clicked => {
+                                    root.change-server();
+                                }
+                                link-text := Text {
+                                    text: "Use a different server";
+                                    color: Theme.primary;
+                                    font-family: Theme.font;
+                                    font-size: 13px;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                    M3TextField {
+                        label: "Username";
+                        text <=> root.username;
+                        accepted => {
+                            pass.focus();
+                        }
+                    }
+                    if root.users.length > 0: VerticalLayout {
+                        spacing: 8px;
+                        Note {
+                            text: "Or pick an account";
+                            font-size: 13px;
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: start;
+                            for name in root.users: M3Chip {
+                                text: name;
+                                selected: root.username == name;
+                                clicked => {
+                                    root.username = name;
+                                    pass.focus();
+                                }
+                            }
+                        }
+                    }
+                    pass := M3TextField {
+                        label: "Password";
+                        password: true;
+                        text <=> root.password;
+                        accepted => {
+                            root.sign-in(root.username, root.password);
+                        }
+                    }
+                    Note {
+                        text: "Leave blank if the account has no password.";
+                        font-size: 13px;
+                    }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Text {
+                            text: "Stay signed in";
+                            color: Theme.on-surface;
+                            font-family: Theme.font;
+                            font-size: 14px;
+                            vertical-alignment: center;
+                        }
+                        Rectangle { }
+                        M3Switch {
+                            checked: root.remember;
+                            toggled(on) => {
+                                root.remember = on;
+                            }
+                        }
+                    }
+                    if root.qc-available: Rectangle {
+                        border-radius: 16px;
+                        background: Theme.surface-container-high;
+                        height: qc.preferred-height + 32px;
+                        qc := VerticalLayout {
+                            padding: 16px;
+                            spacing: 6px;
+                            Note {
+                                text: "No password to hand? On any device already signed in to Jellyfin, open your profile, choose Quick Connect, and enter this code.";
+                                font-size: 13px;
+                            }
+                            if root.qc-code != "": VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: root.qc-code;
+                                    color: Theme.on-surface;
+                                    font-family: Theme.font;
+                                    font-size: 34px;
+                                    font-weight: 500;
+                                }
+                                Note {
+                                    text: "Signs you in here automatically once approved.";
+                                    font-size: 13px;
+                                }
+                            }
+                            if root.qc-code == "" && root.qc-error == "": Text {
+                                text: "000000";
+                                color: Theme.on-surface-variant.with-alpha(0.4);
+                                font-family: Theme.font;
+                                font-size: 34px;
+                                font-weight: 500;
+                            }
+                            if root.qc-error != "": VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: root.qc-error;
+                                    color: Theme.error;
+                                    font-family: Theme.font;
+                                    font-size: 13px;
+                                    wrap: word-wrap;
+                                }
+                                HorizontalLayout {
+                                    alignment: start;
+                                    M3Button {
+                                        text: "Get a new code";
+                                        kind: ButtonKind.tonal;
+                                        clicked => {
+                                            root.new-code();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if root.error != "": Text {
+                    text: root.error;
+                    color: Theme.error;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: end;
+                    M3Button {
+                        text: root.busy ? (root.server-step ? "Checking" : "Signing in") : (root.server-step ? "Continue" : "Sign in");
+                        clicked => {
+                            if (!root.busy) {
+                                if (root.server-step) {
+                                    root.check-server(root.address);
+                                } else {
+                                    root.sign-in(root.username, root.password);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

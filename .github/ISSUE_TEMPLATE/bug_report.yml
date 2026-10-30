@@ -27,7 +27,7 @@ body:
     attributes:
       label: Bloom version
       description: Settings → About, or the AppImage's file name.
-      placeholder: 0.1.0
+      placeholder: 0.1.1
     validations:
       required: true
   - type: input
@@ -59,6 +59,6 @@ body:
       label: Log
       description: |
         Start Bloom from a terminal and paste what it prints around the problem:
-        `./Bloom_0.1.0_amd64.AppImage 2>&1 | tee bloom.log`
+        `./Bloom_*_amd64.AppImage 2>&1 | tee bloom.log`
         Check it for anything you'd rather not share (server addresses, names) before posting.
       render: text

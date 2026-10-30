@@ -1,0 +1,19 @@
+/* Kanagawa for Bloom.
+   Palette: Kanagawa by rebelot (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1f1f28;
+  --surface: #2a2a37;
+  --surface-2: #363646;
+  --raise: #363646;
+  --line: #54546d;
+  --line-soft: #363646;
+  --ink: #dcd7ba;
+  --ink-2: #c8c093;
+  --ink-3: #a6a69c;
+  --accent: #7e9cd8;
+  --accent-ink: #16161d;
+  --good: #98bb6c;
+  --alert: #e46876;
+}

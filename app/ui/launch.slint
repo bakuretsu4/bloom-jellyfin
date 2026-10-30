@@ -1,0 +1,82 @@
+// What shows while a newly signed-in server's first page loads: the flower and the name, breathing
+// slowly, with a thin indeterminate bar under them. It stays as long as loading takes (src/flow.rs
+// ends it) and fades out. It takes the colours of the interface, so it belongs to whichever theme
+// is in use.
+import { Theme } from "theme.slint";
+
+export component Launch inherits Rectangle {
+    // The page is ready: fade out, then say so.
+    in property <bool> ending;
+    callback finished();
+    property <bool> shown;
+    background: Theme.surface;
+    opacity: root.shown && !root.ending ? 1.0 : 0.0;
+    animate opacity { duration: Theme.reduce-motion ? 0ms : (root.ending ? 320ms : 260ms); easing: cubic-bezier(0.2, 0, 0, 1); }
+    init => {
+        root.shown = true;
+    }
+
+    Timer {
+        interval: 340ms;
+        running: root.ending;
+        triggered => {
+            root.finished();
+        }
+    }
+
+    // Nothing underneath answers while it shows.
+    TouchArea { }
+
+    VerticalLayout {
+        alignment: center;
+        spacing: 20px;
+        HorizontalLayout {
+            alignment: center;
+            spacing: 18px;
+            Image {
+                source: @image-url("../assets/bloom-mark.svg");
+                width: 72px;
+                height: 72px;
+                y: (parent.height - self.height) / 2;
+                property <bool> breathing;
+                init => {
+                    self.breathing = true;
+                }
+                transform-scale: self.breathing && !Theme.reduce-motion ? 1.08 : 1.0;
+                animate transform-scale { duration: 1200ms; easing: ease-in-out; iteration-count: -1; direction: alternate; }
+            }
+            Text {
+                text: "Bloom";
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 40px;
+                font-weight: 500;
+                vertical-alignment: center;
+            }
+        }
+        // Indeterminate progress: a short bar sliding along a faint track.
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 168px;
+                height: 4px;
+                border-radius: 2px;
+                background: Theme.surface-container-highest;
+                clip: true;
+                property <bool> going;
+                init => {
+                    self.going = true;
+                }
+                Rectangle {
+                    y: 0;
+                    width: 64px;
+                    height: parent.height;
+                    border-radius: 2px;
+                    background: Theme.primary;
+                    x: parent.going ? parent.width : -self.width;
+                    animate x { duration: 1400ms; easing: cubic-bezier(0.4, 0, 0.2, 1); iteration-count: -1; }
+                }
+            }
+        }
+    }
+}

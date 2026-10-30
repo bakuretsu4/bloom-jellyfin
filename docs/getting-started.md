@@ -5,12 +5,12 @@
 Bloom comes as an AppImage: a single file that runs on most Linux distributions, with nothing to
 install.
 
-1. Download `Bloom_<version>_amd64.AppImage` from the [releases page](../../../releases).
+1. Download `Bloom-<version>-x86_64.AppImage` from the [releases page](../../../releases).
 2. Make it executable and run it:
 
    ```sh
-   chmod +x Bloom_0.1.0_amd64.AppImage
-   ./Bloom_0.1.0_amd64.AppImage
+   chmod +x Bloom-*-x86_64.AppImage
+   ./Bloom-*-x86_64.AppImage
    ```
 
    Or right-click it in your file manager, allow it to run as a program in its properties, and
@@ -24,7 +24,7 @@ install.
   `fuse-libs` on Fedora. Without it, start Bloom with `--appimage-extract-and-run`.
 - A Jellyfin server to connect to (Bloom is tested with Jellyfin 10.11).
 
-**Adding Bloom to your app menu (optional).** An AppImage doesn't add itself to your menu. Tools
+**Adding Bloom to your app menu (optional).** The AppImage carries a launcher entry and icon, but an AppImage doesn't add itself to your menu. Tools
 such as [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) or AppImageLauncher can do it
 for you, or keep the file somewhere like `~/Applications` and start it from there.
 
@@ -84,7 +84,16 @@ new episode shows up without reloading.
 
 ## Updating
 
-Download the new AppImage and replace the old file. Your sign-ins, settings and downloads are kept:
+Download the new AppImage and replace the old file.
+
+**With Gear Lever**, it can check for new releases itself: open Bloom in Gear Lever, and under
+**Update management** choose **Github**, then enter:
+
+- **Username/Repo:** `bakuretsu4/bloom-jellyfin`
+- **Release file name:** `Bloom-*-x86_64.AppImage` (the `*` matches any version)
+- **Allow pre-releases:** on, while Bloom's releases are pre-releases
+
+Save, and Gear Lever offers updates as they're published. Your sign-ins, settings and downloads are kept:
 they live in your home folder, not in the AppImage.
 
 ## Uninstalling

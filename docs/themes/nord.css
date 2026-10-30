@@ -1,0 +1,19 @@
+/* Nord for Bloom.
+   Palette: Nord by Arctic Ice Studio, nordtheme.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #2e3440;
+  --surface: #3b4252;
+  --surface-2: #434c5e;
+  --raise: #434c5e;
+  --line: #4c566a;
+  --line-soft: #434c5e;
+  --ink: #eceff4;
+  --ink-2: #e5e9f0;
+  --ink-3: #d8dee9;
+  --accent: #88c0d0;
+  --accent-ink: #2e3440;
+  --good: #a3be8c;
+  --alert: #bf616a;
+}

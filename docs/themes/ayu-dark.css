@@ -1,0 +1,19 @@
+/* Ayu Dark for Bloom.
+   Palette: Ayu, ayu-theme.github.io (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #0b0e14;
+  --surface: #131721;
+  --surface-2: #1f232b;
+  --raise: #242830;
+  --line: #35383f;
+  --line-soft: #242830;
+  --ink: #bfbdb6;
+  --ink-2: #898885;
+  --ink-3: #848381;
+  --accent: #e6b450;
+  --accent-ink: #111111;
+  --good: #7fd962;
+  --alert: #d95757;
+}

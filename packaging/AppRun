@@ -1,0 +1,23 @@
+#!/bin/sh
+# Bloom's AppImage start-up: finds where it is, picks the VA-API libraries, and starts Bloom.
+HERE="$(dirname "$(readlink -f "$0")")"
+export APPDIR="$HERE"
+
+# VA-API, Intel's and AMD's hardware decoding. libva has to be the system's: it loads the
+# system's drivers, from the folder its distro built it for, and only drivers made for its own
+# version or older. Ubuntu's copy in the AppImage failed to initialise on Arch (tested 2026-09-15,
+# Iris Xe), so mpv decoded everything in software. build-appimage.sh moves it to libva-fallback,
+# which is used only when the system lacks any of the four (Bloom still starts, without VA-API).
+bloom_system_libva=1
+for bloom_lib in libva.so.2 libva-drm.so.2 libva-wayland.so.2 libva-x11.so.2; do
+  bloom_found=
+  for bloom_dir in /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /lib/x86_64-linux-gnu /lib64; do
+    if [ -e "$bloom_dir/$bloom_lib" ]; then bloom_found=1; break; fi
+  done
+  [ -n "$bloom_found" ] || bloom_system_libva=
+done
+if [ -z "$bloom_system_libva" ]; then
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$APPDIR/usr/lib/libva-fallback"
+fi
+
+exec "$HERE/usr/bin/bloom" "$@"

@@ -1,0 +1,19 @@
+/* Everforest Dark for Bloom.
+   Palette: Everforest by sainnhe (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #2d353b;
+  --surface: #343f44;
+  --surface-2: #3d484d;
+  --raise: #475258;
+  --line: #4f5b58;
+  --line-soft: #3d484d;
+  --ink: #d3c6aa;
+  --ink-2: #c3b89d;
+  --ink-3: #c3b89d;
+  --accent: #a7c080;
+  --accent-ink: #232a2e;
+  --good: #83c092;
+  --alert: #e67e80;
+}

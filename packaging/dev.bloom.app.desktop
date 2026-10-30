@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Bloom
+GenericName=Jellyfin client
+Comment=Watch your Jellyfin library
+Exec=bloom
+Icon=dev.bloom.app
+Terminal=false
+Categories=AudioVideo;Video;Player;
+Keywords=jellyfin;movies;shows;music;media;
+StartupWMClass=dev.bloom.app

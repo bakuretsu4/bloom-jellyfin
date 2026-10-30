@@ -3,6 +3,58 @@
 Besides Light, Dark and four accent colours, Bloom lets you make your own themes: your colours,
 your font, checked so they stay readable.
 
+## Ready-made themes
+
+Bloom has 30 of these built in: open **Settings → Appearance → Custom themes** and pick one. It's
+added to your own themes and used, so you can edit or delete it like any other. The same themes are
+in [`docs/themes/`](themes/) as CSS, which you can also paste into **New theme → Edit as CSS**.
+
+| Theme | Style | File |
+|---|---|---|
+| Ayu Dark | Dark | [ayu-dark.css](themes/ayu-dark.css) |
+| Ayu Mirage | Dark | [ayu-mirage.css](themes/ayu-mirage.css) |
+| Catppuccin Frappé | Dark | [catppuccin-frappe.css](themes/catppuccin-frappe.css) |
+| Catppuccin Latte | Light | [catppuccin-latte.css](themes/catppuccin-latte.css) |
+| Catppuccin Macchiato | Dark | [catppuccin-macchiato.css](themes/catppuccin-macchiato.css) |
+| Catppuccin Mocha | Dark | [catppuccin-mocha.css](themes/catppuccin-mocha.css) |
+| Dracula | Dark | [dracula.css](themes/dracula.css) |
+| Everforest Dark | Dark | [everforest-dark.css](themes/everforest-dark.css) |
+| Everforest Light | Light | [everforest-light.css](themes/everforest-light.css) |
+| GitHub Dark | Dark | [github-dark.css](themes/github-dark.css) |
+| GitHub Light | Light | [github-light.css](themes/github-light.css) |
+| Gruvbox Dark | Dark | [gruvbox-dark.css](themes/gruvbox-dark.css) |
+| Gruvbox Light | Light | [gruvbox-light.css](themes/gruvbox-light.css) |
+| Horizon | Dark | [horizon.css](themes/horizon.css) |
+| Kanagawa | Dark | [kanagawa.css](themes/kanagawa.css) |
+| Night Owl | Dark | [night-owl.css](themes/night-owl.css) |
+| Nightfox | Dark | [nightfox.css](themes/nightfox.css) |
+| Nord | Dark | [nord.css](themes/nord.css) |
+| One Dark | Dark | [one-dark.css](themes/one-dark.css) |
+| One Light | Light | [one-light.css](themes/one-light.css) |
+| Oxocarbon | Dark | [oxocarbon.css](themes/oxocarbon.css) |
+| Material Palenight | Dark | [palenight.css](themes/palenight.css) |
+| Poimandres | Dark | [poimandres.css](themes/poimandres.css) |
+| Rosé Pine Dawn | Light | [rose-pine-dawn.css](themes/rose-pine-dawn.css) |
+| Rosé Pine Moon | Dark | [rose-pine-moon.css](themes/rose-pine-moon.css) |
+| Rosé Pine | Dark | [rose-pine.css](themes/rose-pine.css) |
+| Solarized Dark | Dark | [solarized-dark.css](themes/solarized-dark.css) |
+| Solarized Light | Light | [solarized-light.css](themes/solarized-light.css) |
+| Tokyo Night | Dark | [tokyo-night.css](themes/tokyo-night.css) |
+| Tomorrow Night | Dark | [tomorrow-night.css](themes/tomorrow-night.css) |
+
+Each uses its scheme's own colours for the background, panels, text, accent and success and warning
+marks. Where a scheme's dimmer text colour doesn't read at 4.5:1, Bloom's worked-out shade stands in.
+Everforest Light uses the palette's blue as its accent, since its green is too pale to read on light
+panels.
+
+The palettes belong to their authors: [Catppuccin](https://catppuccin.com),
+[Gruvbox](https://github.com/morhetz/gruvbox), [Nord](https://www.nordtheme.com),
+[Dracula](https://draculatheme.com), [Tokyo Night](https://github.com/folke/tokyonight.nvim),
+[Rosé Pine](https://rosepinetheme.com), [Everforest](https://github.com/sainnhe/everforest),
+[Kanagawa](https://github.com/rebelot/kanagawa.nvim),
+[One Dark](https://github.com/atom/one-dark-syntax) and
+[Solarized](https://ethanschoonover.com/solarized).
+
 ## Making a theme
 
 1. Open **Settings → Appearance → Custom themes** and choose **New theme**.
@@ -13,7 +65,7 @@ your font, checked so they stay readable.
    - **Panels:** cards, menus and raised areas.
    - **Text:** all text. Bloom works out the fainter shades from it.
    - **Accent:** buttons, highlights and marks.
-4. Optionally pick a **font** installed on your computer. **Archivo (Bloom's)** is the default.
+4. Optionally pick a **font** installed on your computer. **Roboto (Bloom's)** is the default.
 5. Watch the **preview** and the **checks** beside it, then choose **Save and use**.
 
 Bloom works out every shade in between (dividers, hovered panels, secondary text) from your four

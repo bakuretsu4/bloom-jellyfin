@@ -1,0 +1,19 @@
+/* Catppuccin Latte for Bloom.
+   Palette: Catppuccin, catppuccin.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: light;
+  --ground: #e6e9ef;
+  --surface: #eff1f5;
+  --surface-2: #dce0e8;
+  --raise: #ffffff;
+  --line: #bcc0cc;
+  --line-soft: #ccd0da;
+  --ink: #4c4f69;
+  --ink-2: #5c5f77;
+  --ink-3: #5c5f77;
+  --accent: #8839ef;
+  --accent-ink: #eff1f5;
+  --good: #40a02b;
+  --alert: #d20f39;
+}

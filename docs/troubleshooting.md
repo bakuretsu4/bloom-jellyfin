@@ -8,19 +8,20 @@ If none of this helps, please [open a bug report](../../../issues/new/choose). I
 Start Bloom from a terminal and keep its output:
 
 ```sh
-./Bloom_0.1.0_amd64.AppImage 2>&1 | tee bloom.log
+./Bloom-*-x86_64.AppImage 2>&1 | tee bloom.log
 ```
 
 Reproduce the problem, close Bloom, and attach `bloom.log`. Look it over first for anything you'd
 rather not share, such as your server's address or names.
 
-Some lines are normal and can be ignored, such as `Failed to load module "appmenu-gtk-module"`
-or `GStreamer element appsink not found`.
+Some lines are normal and can be ignored, such as `Cannot load libcuda.so.1` (a machine with no
+NVIDIA driver), `MESA: error: ZINK: vkCreateInstance failed` or `Error watching for xdg desktop
+settings` (no desktop settings service on the session bus).
 
 ## Bloom doesn't start
 
 - **"cannot execute" or nothing happens:** make sure the file is executable
-  (`chmod +x Bloom_*.AppImage`).
+  (`chmod +x Bloom-*.AppImage`).
 - **"AppImages require FUSE to run":** install FUSE 2 (`fuse2` on Arch, `libfuse2t64` on Ubuntu,
   `fuse-libs` on Fedora), or run it with `--appimage-extract-and-run`.
 - **"version `GLIBC_2.39' not found":** your distribution is older than Bloom supports. Bloom needs
@@ -50,7 +51,7 @@ it on the NVIDIA card instead on a Wayland desktop, `prime-run` alone isn't enou
 vendor as well:
 
 ```sh
-__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json prime-run ./Bloom_0.1.0_amd64.AppImage
+__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json prime-run ./Bloom-*-x86_64.AppImage
 ```
 
 Settings → Hardware decoder then names the NVIDIA card, and the player says NVDEC.
@@ -59,6 +60,24 @@ Settings → Hardware decoder then names the NVIDIA card, and the player says NV
 
 Scrolling while a video plays can drop a few frames, most noticeably on integrated graphics. The
 video itself stays smooth. It's a known issue.
+
+## My screen dims, locks or sleeps while I'm watching
+
+While a video plays, Bloom asks your desktop to leave the screen alone, and lets go as soon as you
+pause or stop. It asks in the three ways Linux desktops understand — the screensaver and power
+services on the session bus (KDE Plasma, GNOME, Xfce), the Wayland idle inhibitor (sway, Hyprland),
+and the X server's idle count (window managers like i3, bspwm and dwm) — so most setups are covered.
+
+If your screen still goes dark:
+
+- **Check the video is playing, not paused.** Bloom deliberately lets go on a pause, so your screen
+  behaves normally again when you stop watching.
+- **Start Bloom from a terminal** ([Getting a log](#getting-a-log)) and look for a line about
+  staying awake. Bloom says so once when a desktop refuses or offers nothing to ask.
+- **Two setups aren't covered.** [river](https://codeberg.org/river/river) doesn't act on the idle
+  inhibitor. And a Wayland compositor forced to `GDK_BACKEND=x11` leaves Bloom talking to XWayland,
+  which your compositor doesn't take idle time from. On either, a standalone idle inhibitor
+  alongside Bloom is the way round it.
 
 ## My server isn't listed "On your network"
 
@@ -70,6 +89,16 @@ network. It won't find a server when:
 - a firewall on the server drops that port.
 
 Type the address instead; everything else works the same.
+
+## Trailers open in the browser instead of playing
+
+Bloom plays trailers itself when [yt-dlp](https://github.com/yt-dlp/yt-dlp) is installed
+(`yt-dlp` on Arch and Fedora, or from its releases), and opens them in your browser otherwise; it
+says so under the buttons when it does. If yt-dlp is installed and trailers still open in the
+browser, yt-dlp may be out of date (YouTube changes often): update it and try again.
+
+In the 0.1.0 AppImage, trailers neither played nor opened in the browser, even with yt-dlp
+installed. That's fixed in 0.1.1.
 
 ## Discord doesn't show what I'm watching
 

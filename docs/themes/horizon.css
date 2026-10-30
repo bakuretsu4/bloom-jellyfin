@@ -1,0 +1,19 @@
+/* Horizon for Bloom.
+   Palette: Horizon, jolaleye (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1c1e26;
+  --surface: #232530;
+  --surface-2: #2f313b;
+  --raise: #343640;
+  --line: #454750;
+  --line-soft: #343640;
+  --ink: #cbced0;
+  --ink-2: #96999d;
+  --ink-3: #8c8f93;
+  --accent: #e95678;
+  --accent-ink: #111111;
+  --good: #29d398;
+  --alert: #e95678;
+}

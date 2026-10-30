@@ -1,0 +1,294 @@
+import { Theme, PageScroll } from "theme.slint";
+import { Music } from "music.slint";
+import { M3Button, M3DangerButton, M3TextField, Avatar, ButtonKind, Page } from "m3.slint";
+
+// A server added on this computer.
+export struct ServerData {
+    id: string,
+    name: string,
+    initial: string,
+    // "192.168.1.20:8096, Jellyfin 12.1.0, saved for alyx, guest"
+    detail: string,
+    // "Checking", "Connected", "Reachable", "No response, last seen 3 days ago".
+    status: string,
+    // 0 plain, 1 good, 2 bad.
+    tone: int,
+    // The server of the account in use.
+    current: bool,
+    // It answered the check, or didn't (neither while the check runs).
+    reachable: bool,
+    unreachable: bool,
+    // An account is saved for it, so "Switch" rather than "Sign in".
+    has-accounts: bool,
+    // Removing it signs Bloom out: an account is saved, or it is the one in use.
+    signs-out: bool,
+}
+
+component ServerRow inherits Rectangle {
+    in property <ServerData> data;
+    // This row is the one asking whether to remove.
+    in property <bool> confirming;
+    // "3 downloads (1.8 GB) from it are on this computer.", or empty when there are none.
+    in property <string> confirm-downloads;
+    in property <bool> removing;
+    callback open();
+    callback check();
+    callback ask-remove();
+    callback cancel-remove();
+    callback remove(bool);
+    border-radius: 16px;
+    background: Theme.surface-container-low;
+    height: col.preferred-height;
+
+    col := VerticalLayout {
+        padding: 12px;
+        spacing: 10px;
+        HorizontalLayout {
+            spacing: 12px;
+            Avatar {
+                name: root.data.initial;
+                y: (parent.height - self.height) / 2;
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 1px;
+                Text {
+                    text: root.data.name;
+                    color: Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 16px;
+                    overflow: elide;
+                }
+                Text {
+                    text: root.data.detail;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 12px;
+                    overflow: elide;
+                }
+            }
+            Text {
+                max-width: 220px;
+                horizontal-stretch: 0;
+                text: root.data.status;
+                color: root.data.tone == 1 ? Theme.primary : root.data.tone == 2 ? Theme.error : Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 13px;
+                vertical-alignment: center;
+                horizontal-alignment: right;
+                overflow: elide;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                if !root.confirming: VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        if root.data.unreachable: M3Button {
+                            text: "Retry";
+                            kind: ButtonKind.outlined;
+                            clicked => {
+                                root.check();
+                            }
+                        }
+                        if !root.data.unreachable && !root.data.current: M3Button {
+                            text: root.data.has-accounts ? "Switch" : "Sign in";
+                            kind: ButtonKind.tonal;
+                            opacity: root.data.reachable ? 1.0 : 0.38;
+                            clicked => {
+                                if (root.data.reachable) {
+                                    root.open();
+                                }
+                            }
+                        }
+                        M3Button {
+                            text: "Remove";
+                            kind: ButtonKind.outlined;
+                            clicked => {
+                                root.ask-remove();
+                            }
+                        }
+                    }
+                }
+                if root.confirming: VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        if root.confirm-downloads != "": M3DangerButton {
+                            text: "Remove and delete them";
+                            opacity: root.removing ? 0.38 : 1.0;
+                            clicked => {
+                                if (!root.removing) {
+                                    root.remove(true);
+                                }
+                            }
+                        }
+                        if root.confirm-downloads != "": M3Button {
+                            text: "Remove and keep them";
+                            kind: ButtonKind.outlined;
+                            opacity: root.removing ? 0.38 : 1.0;
+                            clicked => {
+                                if (!root.removing) {
+                                    root.remove(false);
+                                }
+                            }
+                        }
+                        if root.confirm-downloads == "": M3DangerButton {
+                            text: root.data.signs-out ? "Remove and sign out" : "Remove";
+                            opacity: root.removing ? 0.38 : 1.0;
+                            clicked => {
+                                if (!root.removing) {
+                                    root.remove(false);
+                                }
+                            }
+                        }
+                        M3Button {
+                            text: root.confirm-downloads != "" ? "Cancel" : "Keep";
+                            kind: ButtonKind.outlined;
+                            opacity: root.removing ? 0.38 : 1.0;
+                            clicked => {
+                                if (!root.removing) {
+                                    root.cancel-remove();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if root.confirming && root.confirm-downloads != "": Text {
+            text: root.confirm-downloads;
+            color: Theme.on-surface-variant;
+            font-family: Theme.font;
+            font-size: 13px;
+            wrap: word-wrap;
+        }
+    }
+}
+
+export component ServersScreen inherits Page {
+    in property <[ServerData]> servers;
+    in property <bool> loading;
+    in-out property <string> add-address;
+    in property <string> add-error;
+    in property <bool> adding;
+    in property <string> confirm-id;
+    in property <string> confirm-downloads;
+    in property <bool> removing;
+    in property <string> remove-error;
+    callback open(string);
+    callback check(string);
+    callback ask-remove(string);
+    callback cancel-remove();
+    callback remove(string, bool);
+    callback add(string);
+
+    Flickable {
+        content-height: col.preferred-height + 32px + Music.inset;
+        changed content-y => {
+            if (!PageScroll.pending) {
+                PageScroll.y = -self.content-y;
+            }
+        }
+        changed content-height => {
+            if (PageScroll.pending && self.content-height - self.height >= PageScroll.target) {
+                self.content-y = -PageScroll.target;
+                PageScroll.pending = false;
+            }
+        }
+        col := VerticalLayout {
+            padding-left: 8px;
+            padding-right: 24px;
+            spacing: 12px;
+            alignment: start;
+            Text {
+                text: "Servers";
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 32px;
+            }
+            Text {
+                text: "Every Jellyfin server added on this computer, and the accounts saved for each.";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+            }
+            if !root.loading && root.servers.length == 0: Text {
+                text: "No servers yet. Add one by its address below.";
+                color: Theme.on-surface-variant;
+                font-family: Theme.font;
+                font-size: 14px;
+            }
+            for server in root.servers: ServerRow {
+                max-width: 780px;
+                data: server;
+                confirming: root.confirm-id == server.id;
+                confirm-downloads: root.confirm-downloads;
+                removing: root.removing;
+                open => {
+                    root.open(server.id);
+                }
+                check => {
+                    root.check(server.id);
+                }
+                ask-remove => {
+                    root.ask-remove(server.id);
+                }
+                cancel-remove => {
+                    root.cancel-remove();
+                }
+                remove(delete-downloads) => {
+                    root.remove(server.id, delete-downloads);
+                }
+            }
+            if root.remove-error != "": Text {
+                text: root.remove-error;
+                color: Theme.error;
+                font-family: Theme.font;
+                font-size: 14px;
+                wrap: word-wrap;
+            }
+            Rectangle {
+                height: 8px;
+            }
+            Text {
+                text: "Add a server";
+                color: Theme.primary;
+                font-family: Theme.font;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                M3TextField {
+                    label: "Server address";
+                    text <=> root.add-address;
+                    max-width: 480px;
+                    accepted => {
+                        root.add(root.add-address);
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    M3Button {
+                        text: root.adding ? "Checking" : "Add";
+                        clicked => {
+                            if (!root.adding) {
+                                root.add(root.add-address);
+                            }
+                        }
+                    }
+                }
+                Rectangle { }
+            }
+            if root.add-error != "": Text {
+                text: root.add-error;
+                color: Theme.error;
+                font-family: Theme.font;
+                font-size: 14px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

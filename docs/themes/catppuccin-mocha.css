@@ -1,0 +1,19 @@
+/* Catppuccin Mocha for Bloom.
+   Palette: Catppuccin, catppuccin.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1e1e2e;
+  --surface: #313244;
+  --surface-2: #45475a;
+  --raise: #45475a;
+  --line: #585b70;
+  --line-soft: #45475a;
+  --ink: #cdd6f4;
+  --ink-2: #bac2de;
+  --ink-3: #a6adc8;
+  --accent: #cba6f7;
+  --accent-ink: #11111b;
+  --good: #a6e3a1;
+  --alert: #f38ba8;
+}

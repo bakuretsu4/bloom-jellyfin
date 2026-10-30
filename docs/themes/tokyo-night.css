@@ -1,0 +1,19 @@
+/* Tokyo Night for Bloom.
+   Palette: Tokyo Night by folke (Apache-2.0).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1a1b26;
+  --surface: #24283b;
+  --surface-2: #292e42;
+  --raise: #2f334d;
+  --line: #3b4261;
+  --line-soft: #292e42;
+  --ink: #c0caf5;
+  --ink-2: #a9b1d6;
+  --ink-3: #a9b1d6;
+  --accent: #7aa2f7;
+  --accent-ink: #16161e;
+  --good: #9ece6a;
+  --alert: #f7768e;
+}

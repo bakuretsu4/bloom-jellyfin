@@ -1,0 +1,674 @@
+// A small Material 3 kit on Slint primitives, coloured only through `Theme` roles so that a new
+// scheme (seed, light/dark, per-title) re-colours everything and cross-fades.
+import { Theme } from "theme.slint";
+
+// Whether a text field has the keyboard: single keys such as "/" and "?" are for the app only
+// when it doesn't.
+export global Typing {
+    in-out property <bool> active;
+}
+
+export enum ButtonKind { filled, tonal, outlined, text }
+
+// Any pressable M3 surface: hover/press state layer plus a ripple from the press point.
+// Content goes below the layers; the TouchArea is on top and takes the pointer.
+export component Surface inherits Rectangle {
+    in property <color> tint: Theme.on-surface;
+    out property <bool> has-hover: ta.has-hover;
+    out property <bool> pressed: ta.pressed;
+    callback clicked();
+    clip: true;
+
+    @children
+
+    Rectangle {
+        background: ta.pressed ? root.tint.with-alpha(0.10) : ta.has-hover ? root.tint.with-alpha(0.08) : transparent;
+        animate background { duration: Theme.reduce-motion ? 0ms : 120ms; }
+    }
+    Rectangle {
+        x: ta.pressed-x - self.width / 2;
+        y: ta.pressed-y - self.height / 2;
+        width: ta.pressed ? 2px * Math.sqrt(root.width / 1px * root.width / 1px + root.height / 1px * root.height / 1px) : 0px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: root.tint.with-alpha(ta.pressed ? 0.12 : 0.0);
+        animate width { duration: Theme.reduce-motion ? 0ms : 450ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate background { duration: Theme.reduce-motion ? 0ms : 300ms; }
+    }
+    // Reached with Tab, pressed with Space or Enter; the ring shows only for the keyboard.
+    fs := FocusScope {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        focus-on-tab-navigation: true;
+        key-pressed(event) => {
+            if (event.text == " " || event.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    Rectangle {
+        border-width: fs.has-focus ? 2px : 0px;
+        border-color: Theme.primary;
+        border-radius: root.border-radius;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// A page: fades in as it comes on screen (the old page is gone at once, so this is the fade-through's
+// second half).
+export component Page inherits Rectangle {
+    property <bool> shown;
+    opacity: root.shown ? 1.0 : 0.0;
+    animate opacity { duration: Theme.reduce-motion ? 0ms : 260ms; delay: Theme.reduce-motion ? 0ms : 60ms; easing: cubic-bezier(0.05, 0.7, 0.1, 1); }
+    init => {
+        root.shown = true;
+    }
+}
+
+// A placeholder while content loads: a soft highlight sweeps across it.
+export component Skeleton inherits Rectangle {
+    background: Theme.surface-container;
+    clip: true;
+    property <bool> going;
+    init => {
+        root.going = true;
+    }
+    Rectangle {
+        x: root.going && !Theme.reduce-motion ? root.width : -self.width;
+        y: 0;
+        width: root.width * 0.55;
+        height: root.height;
+        background: @linear-gradient(90deg, Theme.surface-container-high.with-alpha(0.0) 0%, Theme.surface-container-high.with-alpha(0.9) 50%, Theme.surface-container-high.with-alpha(0.0) 100%);
+        animate x { duration: 1400ms; iteration-count: -1; easing: linear; }
+    }
+}
+
+export component M3Button inherits Surface {
+    in property <string> text;
+    in property <ButtonKind> kind: ButtonKind.filled;
+    in property <image> icon;
+    // A toggle that is on: a tonal button takes the primary container.
+    in property <bool> selected;
+    property <color> fg: kind == ButtonKind.filled ? Theme.on-primary : kind == ButtonKind.tonal ? (selected ? Theme.on-primary-container : Theme.on-secondary-container) : Theme.primary;
+    height: 40px;
+    border-radius: 20px;
+    background: kind == ButtonKind.filled ? Theme.primary : kind == ButtonKind.tonal ? (selected ? Theme.primary-container : Theme.secondary-container) : transparent;
+    border-width: kind == ButtonKind.outlined ? 1px : 0px;
+    border-color: Theme.outline;
+    tint: fg;
+    preferred-width: row.preferred-width;
+
+    row := HorizontalLayout {
+        padding-left: icon.width > 0 ? 16px : 24px;
+        padding-right: 24px;
+        spacing: 8px;
+        alignment: center;
+        if icon.width > 0: Image {
+            source: root.icon;
+            colorize: root.fg;
+            width: 18px;
+            height: 18px;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            text: root.text;
+            color: root.fg;
+            font-family: Theme.font;
+            font-size: 14px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// A button that deletes or removes: the error container, a second press away from harm.
+export component M3DangerButton inherits Surface {
+    in property <string> text;
+    height: 40px;
+    border-radius: 20px;
+    background: Theme.error-container;
+    tint: Theme.on-error-container;
+    preferred-width: label.preferred-width + 40px;
+    label := Text {
+        text: root.text;
+        color: Theme.on-error-container;
+        font-family: Theme.font;
+        font-size: 14px;
+        font-weight: 500;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component M3IconButton inherits Surface {
+    in property <image> icon;
+    in property <bool> toggled;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background: toggled ? Theme.secondary-container : transparent;
+    tint: toggled ? Theme.on-secondary-container : Theme.on-surface-variant;
+    Image {
+        source: root.icon;
+        colorize: root.tint;
+        width: 24px;
+        height: 24px;
+    }
+}
+
+export component M3Chip inherits Surface {
+    in property <string> text;
+    in property <bool> selected;
+    height: 32px;
+    border-radius: 8px;
+    background: selected ? Theme.secondary-container : transparent;
+    border-width: selected ? 0px : 1px;
+    border-color: Theme.outline-variant;
+    tint: selected ? Theme.on-secondary-container : Theme.on-surface-variant;
+    preferred-width: row.preferred-width;
+    row := HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 8px;
+        alignment: center;
+        if root.selected: Image {
+            source: @image-url("../assets/icons/check.svg");
+            colorize: root.tint;
+            width: 18px;
+            height: 18px;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            text: root.text;
+            color: root.tint;
+            font-family: Theme.font;
+            font-size: 14px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component NavItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> active;
+    // Something is going on behind the item (a download is moving).
+    in property <bool> dot;
+    callback clicked();
+    width: 80px;
+    height: 68px;
+    // The label below the pill is part of the item: pressing it counts.
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    pill := Surface {
+        y: 4px;
+        width: root.active ? 56px : 40px;
+        height: 32px;
+        border-radius: 16px;
+        background: root.active ? Theme.secondary-container : transparent;
+        animate width { duration: Theme.reduce-motion ? 0ms : 250ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        clicked => {
+            root.clicked();
+        }
+        Image {
+            source: root.icon;
+            colorize: root.active ? Theme.on-secondary-container : Theme.on-surface-variant;
+            width: 24px;
+            height: 24px;
+        }
+    }
+    if root.dot: Rectangle {
+        x: parent.width / 2 + 8px;
+        y: 6px;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: Theme.primary;
+    }
+    Text {
+        y: 40px;
+        width: parent.width;
+        horizontal-alignment: center;
+        text: root.label;
+        color: root.active ? Theme.on-surface : Theme.on-surface-variant;
+        font-family: Theme.font;
+        font-size: 12px;
+        font-weight: root.active ? 700 : 500;
+    }
+}
+
+export component SearchBar inherits Rectangle {
+    in property <string> placeholder;
+    in-out property <string> text <=> ti.text;
+    callback edited(string);
+    callback accepted(string);
+    // Keys the text field has no use for, for a list under it.
+    callback down();
+    callback up();
+    callback escape();
+    out property <bool> has-focus: ti.has-focus;
+    height: 56px;
+    border-radius: 28px;
+    background: Theme.surface-container-high;
+    forward-focus: fs;
+    // "/" puts the keyboard here, with what was typed selected.
+    public function focus-input() {
+        ti.focus();
+        ti.select-all();
+    }
+
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            ti.focus();
+        }
+    }
+    fs := FocusScope {
+        forward-focus: ti;
+        capture-key-pressed(event) => {
+            if (event.text == Key.DownArrow) {
+                root.down();
+                return accept;
+            }
+            if (event.text == Key.UpArrow) {
+                root.up();
+                return accept;
+            }
+            if (event.text == Key.Escape) {
+                root.escape();
+                return accept;
+            }
+            return reject;
+        }
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 8px;
+            spacing: 12px;
+            Image {
+                source: @image-url("../assets/icons/search.svg");
+                colorize: Theme.on-surface;
+                width: 24px;
+                height: 24px;
+                y: (parent.height - self.height) / 2;
+            }
+            Rectangle {
+                ti := TextInput {
+                    x: 0;
+                    y: (parent.height - self.height) / 2;
+                    width: parent.width;
+                    height: 24px;
+                    font-family: Theme.font;
+                    font-size: 16px;
+                    color: Theme.on-surface;
+                    single-line: true;
+                    edited => {
+                        root.edited(self.text);
+                    }
+                    accepted => {
+                        root.accepted(self.text);
+                    }
+                    changed has-focus => {
+                        Typing.active = self.has-focus;
+                    }
+                }
+                if ti.text == "": Text {
+                    x: 0;
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.placeholder;
+                    color: Theme.on-surface-variant;
+                    font-family: Theme.font;
+                    font-size: 16px;
+                    horizontal-alignment: left;
+                    vertical-alignment: center;
+                }
+            }
+            if ti.text != "": M3IconButton {
+                icon: @image-url("../assets/icons/close.svg");
+                y: (parent.height - self.height) / 2;
+                clicked => {
+                    ti.text = "";
+                    root.edited("");
+                    ti.focus();
+                }
+            }
+        }
+    }
+}
+
+export component M3TextField inherits Rectangle {
+    in property <string> label;
+    in-out property <string> text <=> ti.text;
+    in property <bool> password;
+    callback accepted();
+    // The text was changed by typing (not by being set).
+    callback edited();
+    out property <bool> has-focus: ti.has-focus;
+    forward-focus: ti;
+    property <bool> floating: ti.has-focus || ti.text != "";
+    height: 56px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    background: Theme.surface-container-highest;
+
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            ti.focus();
+        }
+    }
+    Text {
+        x: 16px;
+        y: root.floating ? 8px : 18px;
+        text: root.label;
+        font-family: Theme.font;
+        font-size: root.floating ? 12px : 16px;
+        color: ti.has-focus ? Theme.primary : Theme.on-surface-variant;
+        animate y { duration: Theme.reduce-motion ? 0ms : 150ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate font-size { duration: Theme.reduce-motion ? 0ms : 150ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    }
+    ti := TextInput {
+        x: 16px;
+        y: 26px;
+        width: parent.width - 32px;
+        height: 24px;
+        font-family: Theme.font;
+        font-size: 16px;
+        color: Theme.on-surface;
+        single-line: true;
+        input-type: root.password ? InputType.password : InputType.text;
+        accepted => {
+            root.accepted();
+        }
+        edited => {
+            root.edited();
+        }
+        changed has-focus => {
+            Typing.active = self.has-focus;
+        }
+    }
+    Rectangle {
+        y: parent.height - self.height;
+        height: ti.has-focus ? 2px : 1px;
+        background: ti.has-focus ? Theme.primary : Theme.on-surface-variant;
+    }
+}
+
+// One row of the player's menu: a label and a check when it is the current choice.
+export component MenuRow inherits Surface {
+    in property <string> label;
+    in property <bool> selected;
+    height: 44px;
+    border-radius: 12px;
+    background: transparent;
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 12px;
+        spacing: 12px;
+        Text {
+            text: root.label;
+            color: root.selected ? Theme.primary : Theme.on-surface;
+            font-family: Theme.font;
+            font-size: 14px;
+            font-weight: root.selected ? 700 : 400;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.selected: Image {
+            source: @image-url("../assets/icons/check.svg");
+            colorize: Theme.primary;
+            width: 20px;
+            height: 20px;
+            y: (parent.height - self.height) / 2;
+        }
+    }
+}
+
+
+// On or off.
+export component M3Switch inherits Rectangle {
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    callback toggled(bool);
+    width: 52px;
+    height: 32px;
+    border-radius: 16px;
+    background: root.checked ? Theme.primary : Theme.surface-container-highest;
+    border-width: root.checked ? 0px : 2px;
+    border-color: Theme.outline;
+    opacity: root.enabled ? 1.0 : 0.38;
+    animate background { duration: Theme.reduce-motion ? 0ms : 200ms; }
+    Rectangle {
+        x: root.checked ? 24px : 6px;
+        y: (parent.height - self.height) / 2;
+        width: root.checked ? 24px : 16px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: root.checked ? Theme.on-primary : Theme.outline;
+        animate x { duration: Theme.reduce-motion ? 0ms : 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+        animate width { duration: Theme.reduce-motion ? 0ms : 200ms; easing: cubic-bezier(0.2, 0, 0, 1); }
+    }
+    TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.toggled(!root.checked);
+        }
+    }
+}
+
+// A few options side by side, one chosen.
+export component Segmented inherits Rectangle {
+    in property <[string]> options;
+    in property <int> selected;
+    callback picked(int);
+    height: 40px;
+    border-radius: 20px;
+    border-width: 1px;
+    border-color: Theme.outline;
+    clip: true;
+    preferred-width: row.preferred-width;
+    row := HorizontalLayout {
+        for option[i] in root.options: Surface {
+            background: root.selected == i ? Theme.secondary-container : transparent;
+            tint: root.selected == i ? Theme.on-secondary-container : Theme.on-surface;
+            clicked => {
+                root.picked(i);
+            }
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                spacing: 6px;
+                alignment: center;
+                if root.selected == i: Image {
+                    source: @image-url("../assets/icons/check.svg");
+                    colorize: Theme.on-secondary-container;
+                    width: 18px;
+                    height: 18px;
+                    y: (parent.height - self.height) / 2;
+                }
+                Text {
+                    text: option;
+                    color: root.selected == i ? Theme.on-secondary-container : Theme.on-surface;
+                    font-family: Theme.font;
+                    font-size: 14px;
+                    font-weight: 500;
+                    vertical-alignment: center;
+                }
+            }
+            // A divider before every segment but the first.
+            if i > 0: Rectangle {
+                x: 0;
+                width: 1px;
+                background: Theme.outline;
+            }
+        }
+    }
+}
+
+// A closed field showing the current choice; pressing it opens the list.
+export component SelectField inherits Rectangle {
+    in property <[string]> options;
+    in property <int> selected;
+    callback picked(int);
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline;
+    min-width: 220px;
+    Surface {
+        border-radius: 8px;
+        clicked => {
+            popup.show();
+        }
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 8px;
+            spacing: 8px;
+            Text {
+                text: root.options[root.selected];
+                color: Theme.on-surface;
+                font-family: Theme.font;
+                font-size: 14px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            Image {
+                source: @image-url("../assets/icons/arrow_drop_down.svg");
+                colorize: Theme.on-surface-variant;
+                width: 24px;
+                height: 24px;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+    }
+    popup := PopupWindow {
+        x: 0;
+        y: root.height + 4px;
+        width: root.width;
+        height: min(320px, root.options.length * 44px + 16px);
+        Rectangle {
+            border-radius: 12px;
+            background: Theme.surface-container-high;
+            Flickable {
+                VerticalLayout {
+                    padding: 8px;
+                    for option[i] in root.options: MenuRow {
+                        label: option;
+                        selected: root.selected == i;
+                        clicked => {
+                            root.picked(i);
+                            popup.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A round tile with a letter, standing in for a picture.
+export component Avatar inherits Rectangle {
+    in property <string> name;
+    // The person's own picture, when they have one.
+    in property <image> image;
+    in property <bool> has-image;
+    width: 40px;
+    height: 40px;
+    border-radius: self.width / 2;
+    clip: true;
+    background: Theme.primary-container;
+    Text {
+        text: root.name;
+        color: Theme.on-primary-container;
+        font-family: Theme.font;
+        font-size: root.width * 0.45;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    if root.has-image: Image {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        source: root.image;
+        image-fit: cover;
+    }
+}
+
+// A piece of a line of facts ("2019", "3 seasons", "Watched").
+export struct MetaPart {
+    text: string,
+    // Drawn in the "good" green (watched, downloaded).
+    good: bool,
+}
+
+// A small bordered label, such as an age rating.
+export component Tag inherits Rectangle {
+    in property <string> text;
+    in property <color> ink: Theme.on-surface-variant;
+    width: label.preferred-width + 12px;
+    height: 20px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: root.ink.with-alpha(0.6);
+    label := Text {
+        text: root.text;
+        color: root.ink;
+        font-family: Theme.font;
+        font-size: 11.5px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Facts on one line, parted by hairlines rather than bullets (an optional bordered tag first).
+export component MetaLine inherits Rectangle {
+    in property <[MetaPart]> parts;
+    in property <string> tag;
+    in property <color> ink: Theme.on-surface-variant;
+    in property <length> font-size: 13px;
+    // The space either side of a divider: tighter in a narrow card.
+    in property <length> gap: 10px;
+    height: 22px;
+    preferred-width: row.preferred-width;
+    row := HorizontalLayout {
+        spacing: root.gap;
+        alignment: start;
+        if root.tag != "": Tag {
+            text: root.tag;
+            ink: root.ink;
+            y: (parent.height - self.height) / 2;
+        }
+        for part[i] in root.parts: HorizontalLayout {
+            spacing: root.gap;
+            if i > 0 || root.tag != "": Rectangle {
+                width: 1px;
+                height: 12px;
+                y: (parent.height - self.height) / 2;
+                background: root.ink.with-alpha(0.35);
+            }
+            Text {
+                text: part.text;
+                color: part.good ? Theme.good : root.ink;
+                font-family: Theme.font;
+                font-size: root.font-size;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

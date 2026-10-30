@@ -1,0 +1,19 @@
+/* Ayu Mirage for Bloom.
+   Palette: Ayu, ayu-theme.github.io (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1f2430;
+  --surface: #2a3040;
+  --surface-2: #353b49;
+  --raise: #3a3f4d;
+  --line: #4a4f5a;
+  --line-soft: #3a3f4d;
+  --ink: #cccac2;
+  --ink-2: #989896;
+  --ink-3: #989896;
+  --accent: #ffcc66;
+  --accent-ink: #111111;
+  --good: #d5ff80;
+  --alert: #f28779;
+}

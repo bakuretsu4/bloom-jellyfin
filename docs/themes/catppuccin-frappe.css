@@ -1,0 +1,19 @@
+/* Catppuccin Frappé for Bloom.
+   Palette: Catppuccin, catppuccin.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #303446;
+  --surface: #414559;
+  --surface-2: #51576d;
+  --raise: #51576d;
+  --line: #626880;
+  --line-soft: #51576d;
+  --ink: #c6d0f5;
+  --ink-2: #b5bfe2;
+  --ink-3: #b5bfe2;
+  --accent: #ca9ee6;
+  --accent-ink: #232634;
+  --good: #a6d189;
+  --alert: #e78284;
+}

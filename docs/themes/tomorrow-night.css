@@ -1,0 +1,19 @@
+/* Tomorrow Night for Bloom.
+   Palette: Tomorrow Theme, Chris Kempson (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #1d1f21;
+  --surface: #282a2e;
+  --surface-2: #333539;
+  --raise: #383a3d;
+  --line: #474a4c;
+  --line-soft: #383a3d;
+  --ink: #c5c8c6;
+  --ink-2: #939594;
+  --ink-3: #939594;
+  --accent: #81a2be;
+  --accent-ink: #111111;
+  --good: #b5bd68;
+  --alert: #cc6666;
+}

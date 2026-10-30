@@ -1,0 +1,19 @@
+/* Solarized Dark for Bloom.
+   Palette: Solarized by Ethan Schoonover (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #002b36;
+  --surface: #073642;
+  --surface-2: #0d3f4c;
+  --raise: #124956;
+  --line: #27535e;
+  --line-soft: #0d3f4c;
+  --ink: #eee8d5;
+  --ink-2: #93a1a1;
+  --ink-3: #93a1a1;
+  --accent: #268bd2;
+  --accent-ink: #111111;
+  --good: #859900;
+  --alert: #dc322f;
+}

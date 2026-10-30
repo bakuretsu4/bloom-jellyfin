@@ -1,0 +1,19 @@
+/* Rosé Pine for Bloom.
+   Palette: Rosé Pine, rosepinetheme.com (MIT).
+   Paste into Settings → Appearance → Custom themes → New theme → Edit as CSS. */
+:root {
+  color-scheme: dark;
+  --ground: #191724;
+  --surface: #1f1d2e;
+  --surface-2: #26233a;
+  --raise: #26233a;
+  --line: #403d52;
+  --line-soft: #26233a;
+  --ink: #e0def4;
+  --ink-2: #908caa;
+  --ink-3: #908caa;
+  --accent: #ebbcba;
+  --accent-ink: #191724;
+  --good: #9ccfd8;
+  --alert: #eb6f92;
+}
