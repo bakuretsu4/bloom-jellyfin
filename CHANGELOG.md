@@ -3,6 +3,13 @@
 All notable changes to Bloom. The format follows [Keep a Changelog](https://keepachangelog.com),
 and versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.3] - 2026-10-30
+
+### Fixed
+
+- **The mouse pointer stayed on the video** when the controls faded away. It is now hidden with them
+  and comes back when you move the mouse.
+
 ## [0.2.2] - 2026-10-30
 
 ### Added

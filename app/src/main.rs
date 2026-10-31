@@ -730,24 +730,38 @@ fn main() {
 
     // The controls fade out after a few idle seconds of a playing video, and return on movement.
     let last_activity = Rc::new(Cell::new(Instant::now()));
+    // Whether the pointer is hidden. Slint only looks at the cursor a widget asks for when the pointer
+    // moves, so a pointer that has been still while the controls went away would stay an arrow on the
+    // picture: the window system is told to hide it, and to show it again with the controls.
+    let cursor_hidden = Rc::new(Cell::new(false));
+    fn set_cursor_hidden(app: &App, hidden: bool, state: &Cell<bool>) {
+        if state.replace(hidden) != hidden {
+            use slint::winit_030::WinitWindowAccessor;
+            app.window().with_winit_window(|w| w.set_cursor_visible(!hidden));
+        }
+    }
     app.on_activity({
-        let (weak, last) = (weak.clone(), last_activity.clone());
+        let (weak, last, hidden) = (weak.clone(), last_activity.clone(), cursor_hidden.clone());
         move || {
             last.set(Instant::now());
             if let Some(app) = weak.upgrade() {
                 app.set_controls_visible(true);
+                set_cursor_hidden(&app, false, &hidden);
             }
         }
     });
     let idle_check = slint::Timer::default();
     idle_check.start(slint::TimerMode::Repeated, Duration::from_millis(500), {
-        let (weak, last) = (weak.clone(), last_activity.clone());
+        let (weak, last, hidden) = (weak.clone(), last_activity.clone(), cursor_hidden.clone());
         move || {
             if let Some(app) = weak.upgrade() {
                 let watching = app.get_screen() == Screen::Watch;
                 if watching && !app.get_paused() && !app.get_menu_open() && app.get_controls_visible() && last.get().elapsed() >= CONTROLS_IDLE {
                     app.set_controls_visible(false);
                 }
+                // Hidden only over a playing picture with its controls away; anywhere else, or on leaving
+                // the player by the keyboard, it is back.
+                set_cursor_hidden(&app, watching && !app.get_controls_visible(), &hidden);
             }
         }
     });
